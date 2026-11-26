@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Astra J Sedan 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: full-bleed WebGL showroom, floating glass top bar, bottom mode rail, slide-up spec sheet */
+:root{
+  --bg:#0d1014; --bg2:#151a21; --panel:rgba(20,25,32,.86); --line:rgba(160,180,200,.16);
+  --fg:#e8edf2; --muted:#8d99a6; --accent:#f2c230; --accent-ink:#1a1503; --good:#5fd39a;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);overflow:hidden;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+#stage{position:fixed;inset:0;touch-action:none}
+#stage canvas{display:block;width:100%;height:100%}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding-top:calc(env(safe-area-inset-top,0px) + 12px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+.brand{pointer-events:auto;min-width:0}
+.brand h1{font-family:var(--display);font-weight:700;font-size:1.65rem;letter-spacing:.02em;margin:0;line-height:1;text-transform:uppercase}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:.3rem 0 0;font-size:.78rem;color:var(--muted);font-family:var(--mono);letter-spacing:.02em}
+.topbtns{display:flex;gap:8px;pointer-events:auto;flex-shrink:0}
+.icon-btn{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:12px;height:42px;min-width:42px;padding:0 12px;
+  display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--display);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:.9rem;cursor:pointer}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:5;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);pointer-events:none}
+.rail{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px max(16px,env(safe-area-inset-right,0px)) 2px max(16px,env(safe-area-inset-left,0px));pointer-events:auto;scroll-snap-type:x proximity}
+.rail::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;scroll-snap-align:start;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:14px;
+  padding:9px 14px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;cursor:pointer;min-width:84px;text-align:left}
+.chip b{font-family:var(--display);font-weight:600;font-size:1.02rem;letter-spacing:.04em;text-transform:uppercase}
+.chip small{font-size:.68rem;color:var(--muted)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip.on small{color:rgba(26,21,3,.7)}
+.sub{display:flex;gap:8px;align-items:center;padding:0 max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));pointer-events:auto;flex-wrap:wrap}
+.toggles{display:flex;gap:6px;flex-wrap:wrap}
+.tg{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:6px 12px;font-size:.78rem;cursor:pointer;display:flex;gap:6px;align-items:center}
+.tg i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.tg.on i{background:var(--good);box-shadow:0 0 8px var(--good)}
+.slider{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;flex:1 1 220px;min-width:0;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.slider label{font-size:.75rem;color:var(--muted);white-space:nowrap}
+.slider input{flex:1;accent-color:var(--accent);min-width:0}
+.swatches{display:flex;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 8px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.sw{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.25);cursor:pointer;padding:0}
+.sw.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--bg)}
+
+.card{position:fixed;z-index:6;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  top:calc(env(safe-area-inset-top,0px) + 78px);max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transform:translateY(-8px);opacity:0;pointer-events:none;transition:.25s}
+.card.show{opacity:1;transform:none;pointer-events:auto}
+.card .cat{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.card h3{font-family:var(--display);font-size:1.35rem;margin:.15rem 0 .35rem;letter-spacing:.02em;text-wrap:balance}
+.card p{margin:0;font-size:.88rem;line-height:1.45;color:#c4ccd5}
+.card .x{position:absolute;top:8px;right:8px;border:0;background:none;width:32px;height:32px;cursor:pointer;color:var(--muted);font-size:1.2rem}
+.hint{position:fixed;z-index:4;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);font-size:.76rem;color:var(--muted);
+  background:rgba(13,16,20,.6);padding:6px 12px;border-radius:999px;white-space:nowrap;transition:opacity .6s;pointer-events:none}
+
+.sheet{position:fixed;z-index:8;left:0;right:0;bottom:0;max-height:82%;background:var(--bg2);border-top:1px solid var(--line);border-radius:20px 20px 0 0;
+  transform:translateY(102%);transition:transform .35s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet.show{transform:none}
+.sheet header{padding:10px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.grab{width:42px;height:4px;border-radius:4px;background:var(--line);margin:0 auto 10px}
+.sheet h2{font-family:var(--display);font-size:1.6rem;margin:0;text-transform:uppercase;letter-spacing:.02em}
+.sheet .lead{margin:.25rem 0 .7rem;color:var(--muted);font-size:.85rem}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
+.tab{border:1px solid var(--line);background:none;border-radius:999px;padding:6px 14px;font-size:.82rem;cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.sheet .body{overflow-y:auto;padding:4px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px));-webkit-overflow-scrolling:touch}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.kpi{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px}
+.kpi b{display:block;font-family:var(--display);font-size:1.5rem;line-height:1;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--muted);font-size:.7rem}
+dl.specs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);margin:0;border-top:1px solid var(--line)}
+dl.specs dt,dl.specs dd{padding:9px 0;border-bottom:1px solid var(--line);margin:0;font-size:.86rem}
+dl.specs dt{color:var(--muted)}
+dl.specs dd{font-family:var(--mono);font-size:.8rem;text-align:right;font-variant-numeric:tabular-nums}
+.sect{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:18px 0 6px}
+ul.eq{list-style:none;padding:0;margin:0;display:grid;gap:0}
+ul.eq li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+ul.eq li span:last-child{font-family:var(--mono);font-size:.74rem;white-space:nowrap}
+.y{color:var(--good)} .n{color:var(--muted)}
+.note{font-size:.76rem;color:var(--muted);line-height:1.5;margin-top:14px}
+.pkg{display:flex;gap:6px;margin:4px 0 10px}
+.loader{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--bg);transition:opacity .5s}
+.loader b{font-family:var(--display);font-size:1.4rem;letter-spacing:.1em;text-transform:uppercase}
+.loader small{color:var(--muted);font-family:var(--mono);font-size:.75rem}
+.err{color:#ff8a7a;max-width:300px;text-align:center;font-size:.85rem}
+@media (min-width:760px){.card{left:auto;right:max(16px,env(safe-area-inset-right,0px));top:90px}.sheet{left:auto;right:16px;width:440px;bottom:16px;border-radius:20px;border:1px solid var(--line);max-height:80%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div class="loader" id="loader"><b>Astra J Sedan</b><small id="loadmsg">3D model hazırlanıyor…</small></div>
+
+<div class="top">
+  <div class="brand">
+    <h1>Astra <span>J</span> Sedan</h1>
+    <p>2017 · 1.6 Ecotec 115 PS · 5 ileri manuel</p>
+  </div>
+  <div class="topbtns">
+    <button class="icon-btn" id="btnInfo" aria-label="Araç bilgisi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Bilgi</button>
+  </div>
+</div>
+
+<div class="card" id="card" role="status"><button class="x" id="cardX" aria-label="Kapat">×</button><div class="cat" id="cCat"></div><h3 id="cName"></h3><p id="cDesc"></p></div>
+<div class="hint" id="hint">Döndür: sürükle · Yakınlaş: iki parmak · Parçaya dokun: bilgi</div>
+
+<div class="bottom">
+  <div class="sub" id="sub"></div>
+  <div class="rail" id="rail"></div>
+</div>
+
+<div class="sheet" id="sheet" aria-hidden="true">
+  <header>
+    <div class="grab"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div style="min-width:0"><h2>Opel Astra J Sedan</h2><p class="lead">2017 model · 1.6 Ecotec 115 PS · 5 ileri manuel · Edition</p></div>
+      <button class="icon-btn" id="sheetX" aria-label="Kapat">✕</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+  </header>
+  <div class="body" id="sheetBody"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+if(!window.THREE){ $('#loadmsg').innerHTML='<span class="err">3D kütüphanesi yüklenemedi. İnternet bağlantını kontrol edip sayfayı yenile.</span>'; return; }
+
+if(THREE.ColorManagement)THREE.ColorManagement.legacyMode=false;
+/* ================= helpers ================= */
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+const sgnpow=(v,p)=>Math.sign(v)*Math.pow(Math.abs(v),p);
+function mono(pts){ // monotone cubic interpolation (Fritsch-Carlson); pts ascending x
+  const n=pts.length,xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),d=[],m=new Array(n);
+  for(let i=0;i<n-1;i++)d.push((ys[i+1]-ys[i])/(xs[i+1]-xs[i]));
+  m[0]=d[0];m[n-1]=d[n-2];
+  for(let i=1;i<n-1;i++)m[i]=(d[i-1]*d[i]<=0)?0:(d[i-1]+d[i])/2;
+  for(let i=0;i<n-1;i++){ if(d[i]===0){m[i]=m[i+1]=0;continue;} const a=m[i]/d[i],b=m[i+1]/d[i],s=a*a+b*b; if(s>9){const t=3/Math.sqrt(s);m[i]=t*a*d[i];m[i+1]=t*b*d[i];} }
+  return x=>{ if(x<=xs[0])return ys[0]; if(x>=xs[n-1])return ys[n-1];
+    let i=0; while(x>xs[i+1])i++; const h=xs[i+1]-xs[i],t=(x-xs[i])/h,t2=t*t,t3=t2*t;
+    return (2*t3-3*t2+1)*ys[i]+(t3-2*t2+t)*h*m[i]+(-2*t3+3*t2)*ys[i+1]+(t3-t2)*h*m[i+1]; };
+}
+function rbox(w,h,d,r,seg){ // rounded box
+  seg=seg||3; r=Math.min(r,w/2-1e-4,h/2-1e-4,d/2-1e-4);
+  const g=new THREE.BoxGeometry(w,h,d,seg*2,seg*2,seg*2),p=g.attributes.position,v=new THREE.Vector3(),c=new THREE.Vector3();
+  const hx=w/2-r,hy=h/2-r,hz=d/2-r;
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);c.set(clamp(v.x,-hx,hx),clamp(v.y,-hy,hy),clamp(v.z,-hz,hz));v.sub(c);if(v.lengthSq()>0)v.setLength(r);v.add(c);p.setXYZ(i,v.x,v.y,v.z);}
+  g.computeVertexNormals();return g;
+}
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');draw(x,w,h);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t;}
+
+/* ================= renderer / scene ================= */
+const stage=$('#stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(stage.clientWidth,stage.clientHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=0.95;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0d1014);
+scene.fog=new THREE.Fog(0x0d1014,14,30);
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new THREE.RoomEnvironment(),0.04).texture;
+
+const camera=new THREE.PerspectiveCamera(40,stage.clientWidth/stage.clientHeight,0.03,80);
+camera.position.set(5.6,2.1,4.6);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.target.set(0,0.62,0);controls.enableDamping=true;controls.dampingFactor=0.08;
+controls.minDistance=0.25;controls.maxDistance=12;controls.maxPolarAngle=Math.PI*0.52;controls.enablePan=true;controls.panSpeed=0.6;controls.rotateSpeed=0.7;
+
+scene.add(new THREE.HemisphereLight(0xdde6ff,0x1a1d22,0.55));
+const sun=new THREE.DirectionalLight(0xffffff,1.6);sun.position.set(4,7,3);sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-4,right:4,top:4,bottom:-4,near:1,far:20});sun.shadow.bias=-0.0005;
+scene.add(sun);
+const rim=new THREE.DirectionalLight(0x9fb8ff,0.6);rim.position.set(-5,3,-4);scene.add(rim);
+const cabinLight=new THREE.PointLight(0xfff2e0,0.0,2.6,1.5);cabinLight.position.set(-0.1,1.3,0);scene.add(cabinLight);
+
+// floor: turntable disk + grid ring
+const floor=new THREE.Mesh(new THREE.CircleGeometry(30,64),new THREE.MeshStandardMaterial({color:0x11151a,roughness:0.9,metalness:0}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const disk=new THREE.Mesh(new THREE.CircleGeometry(3.6,96),new THREE.MeshStandardMaterial({color:0x1a2028,roughness:0.55,metalness:0.2}));
+disk.rotation.x=-Math.PI/2;disk.position.y=0.002;disk.receiveShadow=true;scene.add(disk);
+const ring=new THREE.Mesh(new THREE.RingGeometry(3.58,3.64,128),new THREE.MeshBasicMaterial({color:0xf2c230,transparent:true,opacity:0.5}));
+ring.rotation.x=-Math.PI/2;ring.position.y=0.004;scene.add(ring);
+const contact=new THREE.Mesh(new THREE.PlaneGeometry(5.4,2.6),new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,map:canvasTex(256,128,(x,w,h)=>{const g=x.createRadialGradient(w/2,h/2,4,w/2,h/2,w/2);g.addColorStop(0,'rgba(0,0,0,.75)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.save();x.scale(1,h/w);x.fillRect(0,0,w,w);x.restore();x.fillStyle=g;})}));
+contact.rotation.x=-Math.PI/2;contact.position.y=0.006;scene.add(contact);
+
+/* ================= materials ================= */
+const PAINTS=[
+  {n:'Summit White',c:0xeceeee},{n:'Sovereign Silver',c:0x8f959b},{n:'Asteroid Grey',c:0x4c5156},
+  {n:'Carbon Flash',c:0x101214},{n:'Royal Blue',c:0x1f3f7a},{n:'Power Red',c:0x9c1018}
+];
+const M={
+  paint:new THREE.MeshPhysicalMaterial({color:PAINTS[1].c,metalness:0.6,roughness:0.36,clearcoat:1,clearcoatRoughness:0.06,side:THREE.DoubleSide}),
+  glass:new THREE.MeshPhysicalMaterial({color:0x05080b,metalness:0,roughness:0.08,transparent:true,opacity:0.9,side:THREE.DoubleSide,depthWrite:false}),
+  blackTrim:new THREE.MeshStandardMaterial({color:0x0b0c0e,roughness:0.45,metalness:0.2,side:THREE.DoubleSide}),
+  plastic:new THREE.MeshStandardMaterial({color:0x17191c,roughness:0.75,side:THREE.DoubleSide}),
+  chrome:new THREE.MeshStandardMaterial({color:0xffffff,metalness:1,roughness:0.08}),
+  headlamp:new THREE.MeshPhysicalMaterial({color:0x9aa4ad,metalness:0.9,roughness:0.12,clearcoat:1,emissive:0x000000,side:THREE.DoubleSide}),
+  drl:new THREE.MeshStandardMaterial({color:0x8c939a,metalness:0.6,emissive:0x000000,roughness:0.3,side:THREE.DoubleSide}),
+  tail:new THREE.MeshPhysicalMaterial({color:0x6a0a0e,metalness:0.2,roughness:0.15,clearcoat:1,emissive:0x000000,side:THREE.DoubleSide}),
+  fog:new THREE.MeshStandardMaterial({color:0xcfd6dd,metalness:0.8,roughness:0.15,side:THREE.DoubleSide}),
+  grille:new THREE.MeshStandardMaterial({color:0x0e0f11,metalness:0.6,roughness:0.35,side:THREE.DoubleSide}),
+  tire:new THREE.MeshStandardMaterial({color:0x141516,roughness:0.92}),
+  rim:new THREE.MeshStandardMaterial({color:0xc4c9ce,metalness:0.85,roughness:0.28}),
+  hubcap:new THREE.MeshStandardMaterial({color:0xb8bdc2,metalness:0.6,roughness:0.35}),
+  disc:new THREE.MeshStandardMaterial({color:0x7a7d80,metalness:0.9,roughness:0.45}),
+  caliper:new THREE.MeshStandardMaterial({color:0x2a2c30,metalness:0.4,roughness:0.5}),
+  fabric:new THREE.MeshStandardMaterial({color:0x2b2e33,roughness:0.95}),
+  fabric2:new THREE.MeshStandardMaterial({color:0x3e434a,roughness:0.95}),
+  dash:new THREE.MeshStandardMaterial({color:0x1c1e21,roughness:0.8,side:THREE.DoubleSide}),
+  dashTrim:new THREE.MeshStandardMaterial({color:0x8e959c,metalness:0.8,roughness:0.3}),
+  carpet:new THREE.MeshStandardMaterial({color:0x1d1f22,roughness:1,side:THREE.DoubleSide}),
+  doorCard:new THREE.MeshStandardMaterial({color:0x26292d,roughness:0.85,side:THREE.DoubleSide}),
+  engine:new THREE.MeshStandardMaterial({color:0x6d7277,metalness:0.7,roughness:0.45}),
+  engineDark:new THREE.MeshStandardMaterial({color:0x1b1c1f,metalness:0.3,roughness:0.6}),
+  alu:new THREE.MeshStandardMaterial({color:0xa7adb3,metalness:0.85,roughness:0.35}),
+  steel:new THREE.MeshStandardMaterial({color:0x3c4045,metalness:0.8,roughness:0.5}),
+  rust:new THREE.MeshStandardMaterial({color:0x5b5a57,metalness:0.6,roughness:0.7}),
+  spring:new THREE.MeshStandardMaterial({color:0x1a4fa8,metalness:0.5,roughness:0.4}),
+  yellow:new THREE.MeshStandardMaterial({color:0xf2c230,roughness:0.5}),
+  battery:new THREE.MeshStandardMaterial({color:0x202226,roughness:0.6}),
+  coolant:new THREE.MeshPhysicalMaterial({color:0xf3a0c6,roughness:0.2,transparent:true,opacity:0.8}),
+  reservoir:new THREE.MeshPhysicalMaterial({color:0xe7e1cf,roughness:0.3,transparent:true,opacity:0.85}),
+  radiator:new THREE.MeshStandardMaterial({color:0x2a2d31,metalness:0.6,roughness:0.5}),
+  boot:new THREE.MeshStandardMaterial({color:0x101112,roughness:0.6}),
+  red:new THREE.MeshStandardMaterial({color:0xb3121a,roughness:0.4}),
+  liner:new THREE.MeshStandardMaterial({color:0x0c0d0e,roughness:1,side:THREE.DoubleSide}),
+  headliner:new THREE.MeshStandardMaterial({color:0x9a9c9e,roughness:1,side:THREE.DoubleSide}),
+};
+const BODY_MATS=[M.paint,M.glass,M.blackTrim,M.plastic,M.headlamp,M.drl,M.tail,M.fog,M.grille,M.chrome];
+BODY_MATS.forEach(m=>{m.userData.baseOpacity=m.opacity;m.userData.baseTransparent=m.transparent;});
+// body-only chrome copy so x-ray doesn't hit wheels
+M.bodyChrome=M.chrome.clone();BODY_MATS[BODY_MATS.length-1]=M.bodyChrome;M.bodyChrome.userData.baseOpacity=1;M.bodyChrome.userData.baseTransparent=false;
+
+/* ================= body surface (parametric loft) ================= */
+// Coordinate system: +x = front, +y = up, +z = right side. Units = metres. Real Astra J Sedan: 4658 × 1814 × 1500, wheelbase 2685.
+const L2=2.37, FX=1.40, RX=-1.285, WR=0.326, TRACK=0.772;
+const Tp=mono([[-2.37,0.97],[-2.32,1.035],[-2.2,1.075],[-1.95,1.085],[-1.63,1.08],[-1.0,1.075],[0,1.07],[0.95,1.02],[1.3,0.96],[1.8,0.89],[2.15,0.845],[2.30,0.815],[2.37,0.78]]);
+const Bp=mono([[-2.37,0.36],[-2.25,0.30],[-1.95,0.25],[-1.0,0.21],[1.0,0.21],[1.9,0.24],[2.2,0.26],[2.37,0.27]]);
+const Rp=mono([[-1.63,1.08],[-1.45,1.18],[-1.2,1.34],[-0.9,1.445],[-0.5,1.492],[-0.1,1.50],[0.15,1.475],[0.45,1.34],[0.75,1.17],[0.95,1.02]]);
+function Wp(x){
+  let w=0.905;
+  if(x>1.70){const r=clamp((x-1.70)/(L2-1.70),0,1);w*=0.80+0.20*Math.pow(1-Math.pow(r,2.6),1/2.6);}
+  if(x<-1.85){const r=clamp((-1.85-x)/(L2-1.85),0,1);w*=0.80+0.20*Math.pow(1-Math.pow(r,2.6),1/2.6);}
+  return w;
+}
+const A=0.55,PZ=0.38,PY=0.55,SA=Math.pow(Math.sin(A),PY);
+const SB=0.30, SDB=0.05; // belt line & door bottom in section parameter
+function lower(x,s,out){
+  const phi=Math.PI+A-s*(Math.PI+2*A),c=Math.cos(phi),sn=Math.sin(phi);
+  const T=Tp(x),B=Bp(x),u=sgnpow(sn,PY),f=(u+SA)/(1+SA),y=B+(T-B)*f;
+  const tum=1-0.07*Math.pow(clamp((f-0.45)/0.55,0,1),2);
+  const tuck=1-0.035*Math.pow(clamp((0.25-f)/0.25,0,1),2);
+  const sd=clamp((Math.abs(c)-0.5)/0.3,0,1);
+  // Astra J "blade": lower crease rising from the front door towards the rear wheel
+  const ly=lerp(0.40,0.60,sstep(0.7,-1.15,x)), fade=sstep(1.1,0.6,x)*sstep(-1.6,-1.15,x);
+  const blade=-0.012*fade*(1-sstep(ly-0.012,ly+0.012,y))*sstep(0.26,0.36,y);
+  // shoulder line from headlamp through the door handles to the tail lamps
+  const sy=0.855+0.04*sstep(0.6,-2.0,x), ridge=0.007*Math.exp(-Math.pow((y-sy)/0.018,2))*sstep(2.25,1.9,x)*sstep(-2.3,-2.1,x);
+  const w=Wp(x);out.set(x,y,(w*sgnpow(c,PZ)*tum*tuck)+Math.sign(c)*(blade+ridge)*sd*Math.min(1,w/0.6));return out;
+}
+const CAB0=-1.63,CAB1=0.95;
+function cabinH(x){return (x<=CAB0||x>=CAB1)?0:Math.max(0,Rp(x)-Tp(x));}
+function green(x,q,out){
+  const sp=SB+q*(1-2*SB);lower(x,sp,out);
+  const H=cabinH(x),qq=Math.min(q,1-q),g=qq<0.2?0.88*qq/0.2:0.88+0.12*Math.pow(Math.sin(Math.PI/2*Math.min(1,(qq-0.2)/0.3)),0.6);
+  out.y+=H*g;out.z*=1-0.29*g*Math.min(1,H/0.22);return out;
+}
+// sample arrays with forced breakpoints
+function samples(a,b,n,breaks,ease){
+  const arr=[];for(let i=0;i<=n;i++){let t=i/n;if(ease)t=0.5-0.5*Math.cos(Math.PI*t);arr.push(a+(b-a)*t);}
+  breaks.forEach(v=>{if(v>a&&v<b)arr.push(v);});arr.sort((p,q)=>p-q);
+  return arr.filter((v,i)=>i===0||v-arr[i-1]>1e-5);
+}
+const DOOR={fl:[0.0,0.95],rl:[-0.98,-0.08]};
+const XBR=[CAB0,CAB1,DOOR.fl[0],DOOR.fl[1],DOOR.rl[0],DOOR.rl[1],-1.65,0.97,2.22,-1.28,-1.0];
+// Build a loft grid; classify each quad -> key; returns {key: BufferGeometry}
+function loft(fn,xs,ss,classify){
+  const nx=xs.length,ns=ss.length,pos=new Float32Array(nx*ns*3),v=new THREE.Vector3();
+  for(let i=0;i<nx;i++)for(let j=0;j<ns;j++){fn(xs[i],ss[j],v);const k=(i*ns+j)*3;pos[k]=v.x;pos[k+1]=v.y;pos[k+2]=v.z;}
+  const full=new THREE.BufferGeometry();full.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const idx=[];for(let i=0;i<nx-1;i++)for(let j=0;j<ns-1;j++){const a=i*ns+j,b=a+ns;idx.push(a,b,a+1,b,b+1,a+1);}
+  full.setIndex(idx);full.computeVertexNormals();
+  const nrm=full.attributes.normal.array,buckets={};
+  const c=new THREE.Vector3(),n=new THREE.Vector3(),p1=new THREE.Vector3(),p2=new THREE.Vector3();
+  for(let i=0;i<nx-1;i++)for(let j=0;j<ns-1;j++){
+    const a=i*ns+j,b=a+ns;
+    p1.fromArray(pos,b*3);p2.fromArray(pos,(a+1)*3);
+    c.fromArray(pos,a*3).add(p1).add(p2).add(v.fromArray(pos,(b+1)*3)).multiplyScalar(0.25);
+    n.set(0,0,0);[a,b,a+1,b+1].forEach(k=>{n.x+=nrm[k*3];n.y+=nrm[k*3+1];n.z+=nrm[k*3+2];});n.normalize();
+    const key=classify((xs[i]+xs[i+1])/2,(ss[j]+ss[j+1])/2,c,n);if(!key)continue;
+    (buckets[key]||(buckets[key]=[])).push(a,b,a+1,b,b+1,a+1);
+  }
+  const out={};
+  for(const key in buckets){
+    const I=buckets[key],map=new Map(),P=[],N=[],J=[];
+    for(const k of I){let m=map.get(k);if(m===undefined){m=P.length/3;map.set(k,m);P.push(pos[k*3],pos[k*3+1],pos[k*3+2]);N.push(nrm[k*3],nrm[k*3+1],nrm[k*3+2]);}J.push(m);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(N,3));g.setIndex(J);
+    out[key]=g;
+  }
+  return out;
+}
+const inArch=(c)=>Math.abs(c.z)>0.5&&c.y<0.80&&(Math.hypot(c.x-FX,c.y-WR)<0.385||Math.hypot(c.x-RX,c.y-WR)<0.38);
+// lamp outlines in front/rear view: (|z|, y) lower & upper boundaries
+const HL_LO=mono([[0.40,0.625],[0.48,0.612],[0.62,0.628],[0.76,0.67],[0.89,0.735]]), HL_HI=mono([[0.40,0.715],[0.46,0.755],[0.62,0.795],[0.80,0.815],[0.89,0.83]]);
+const TL_LO=mono([[0.40,0.845],[0.6,0.825],[0.8,0.815],[0.92,0.83]]), TL_HI=mono([[0.40,0.905],[0.6,0.94],[0.8,0.962],[0.92,0.975]]);
+function surfMat(c,n,x){
+  const az=Math.abs(c.z);
+  if(x>1.6){ // front fascia
+    if(az>0.40&&az<0.89&&c.y>HL_LO(az)&&c.y<HL_HI(az)&&c.x>1.93) return (c.y<HL_LO(az)+0.022)?'drl':'headlamp';
+    if(n.x>0.35){
+      if(az<0.40&&c.y>0.60&&c.y<0.705) return 'grille';
+      if(c.y>0.27&&c.y<0.43&&az<0.36+0.14*(0.43-c.y)/0.16) return 'grille';
+      if(az>0.60&&az<0.72&&c.y>0.305&&c.y<0.37) return 'fog';
+      if(az>0.56&&az<0.77&&c.y>0.28&&c.y<0.395) return 'plastic';
+      if(c.y<0.27) return 'plastic';
+    }
+  }
+  if(x<-1.7){
+    if(az>0.40&&az<0.92&&c.y>TL_LO(az)&&c.y<TL_HI(az)&&(n.x<-0.25||c.x<-2.05)) return 'tail';
+    if(n.x<-0.3&&c.y<0.36) return 'plastic';
+  }
+  if(c.y<0.26&&n.y<-0.2) return 'plastic';
+  return 'paint';
+}
+const XS=samples(-L2,L2,380,XBR,true), SS=samples(0,1,170,[SB,1-SB,SDB,1-SDB,0.27,0.73],false);
+function sideOf(s){return s<0.5?'l':'r';}
+const bodyParts=loft(lower,XS,SS,(x,s,c,n)=>{
+  if(inArch(c))return null;
+  const inCab=x>CAB0&&x<CAB1;
+  if(inCab&&s>SB&&s<1-SB)return null;
+  const side=(s<SB||s>1-SB);
+  if(side&&s>SDB&&s<1-SDB){
+    if(x>DOOR.fl[0]&&x<DOOR.fl[1])return 'door_f'+sideOf(s)+'|'+surfMat(c,n,x);
+    if(x>DOOR.rl[0]&&x<DOOR.rl[1])return 'door_r'+sideOf(s)+'|'+surfMat(c,n,x);
+  }
+  if(s>0.27&&s<0.73){
+    if(x>0.97&&x<2.22)return 'hood|'+surfMat(c,n,x);
+    if(x<-1.65)return 'trunk|'+surfMat(c,n,x);
+  }
+  return 'shell|'+surfMat(c,n,x);
+});
+// end caps (front fascia & rear panel): convex faces closing the loft, boundary = section arc + bottom edge
+const CAPK=0.88;
+function capFn(front){const v=new THREE.Vector3(),w2=new THREE.Vector3();return (t,u,out)=>{const X=front?L2:-L2;let bulge;
+  if(u<=CAPK){lower(X,u/CAPK,v);bulge=0.6+0.4*Math.sin(Math.PI*u/CAPK);}
+  else{lower(X,1,v);lower(X,0,w2);v.lerp(w2,(u-CAPK)/(1-CAPK));bulge=0.6;}
+  const yc=(Tp(X)+Bp(X))*0.5;
+  out.set(X+(front?1:-1)*0.07*(1-t*t)*bulge,yc+(v.y-yc)*t,v.z*t);return out;};}
+const TS=samples(0,1,90,[],false),CS=samples(0,1,240,[CAPK],false);
+function capClassify(front){return (t,u,c,n)=>{ if((front&&n.x<0)||(!front&&n.x>0))n.negate();
+  if(!front&&c.y>0.815&&Math.abs(c.z)<0.62)return 'trunk|'+surfMat(c,n,-2.37);
+  return 'shell|'+surfMat(c,n,front?2.37:-2.37);};}
+[true,false].forEach(fr=>{const cp=loft(capFn(fr),TS,CS,capClassify(fr));for(const k in cp){const key=k+'#cap'+(fr?'f':'r');bodyParts[key]=cp[k];}});
+// ray helper against the raw body surfaces (used to seat badges, plates, handles)
+const RAYM=Object.values(bodyParts).map(g=>{const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));m.updateMatrixWorld();return m;});
+const _rc=new THREE.Raycaster();
+function hitP(o,d){_rc.set(new THREE.Vector3(...o),new THREE.Vector3(...d).normalize());const h=_rc.intersectObjects(RAYM,false)[0];return h?h.point:null;}
+function frontX(y,z){const h=hitP([4,y,z],[-1,0,0]);return h?h.x:2.4;}
+function rearX(y,z){const h=hitP([-4,y,z],[1,0,0]);return h?h.x:-2.4;}
+function sideZ(x,y,sgn){const h=hitP([x,y,sgn*3],[0,0,-sgn]);return h?h.z:sgn*0.9;}
+// greenhouse: side window outline (DLO) with chrome surround, as on the real car
+function qtop(x){return x>-1.0?0.186:0.03+0.156*Math.pow(sstep(-1.36,-1.0,x),0.55);}
+const GXS=samples(CAB0,CAB1,260,XBR.concat([0.18,-0.88,-1.58,0.93,-1.36,0.04,0.87,-0.14,-0.95,-1.01]),false),
+      GQ=samples(0,1,140,[0.012,0.186,0.196,0.2,0.235,0.765,0.8,0.804,0.814,0.988],false);
+const greenParts=loft(green,GXS,GQ,(x,q,c,n)=>{
+  const qq=Math.min(q,1-q), sd=q<0.5?'l':'r';
+  const D=x>DOOR.fl[0]&&x<DOOR.fl[1]?'door_f'+sd:(x>DOOR.rl[0]&&x<DOOR.rl[1]?'door_r'+sd:'green');
+  if(qq<0.2){
+    const qt=qtop(x);
+    if(x<-1.36||(x>-0.08&&x<0.0)){ return qq<0.012&&x>-1.36?D+'|chrome':(x>-0.08&&x<0.0&&qq<qt?'green|blackTrim':'green|paint'); }
+    if(qq<0.012) return D+'|chrome';
+    if(qq<qt){
+      if(D.startsWith('door_f')) return (x<0.04||x>0.87)?D+'|blackTrim':D+'|glass';
+      if(D.startsWith('door_r')) return (x>-0.14||x<-0.95)?D+'|blackTrim':D+'|glass';
+      return (x>-1.01)?'green|blackTrim':'green|glass';
+    }
+    if(qq<qt+0.01) return D+'|chrome';
+    return 'green|paint';
+  }
+  const ws=x>0.18&&x<0.93, rw=x<-0.88&&x>-1.58;
+  if(ws||rw){ if(qq<0.235||x>0.90||x<-1.555||(ws&&x<0.21)||(rw&&x>-0.91))return 'green|blackTrim'; return 'green|glass'; }
+  return 'green|paint';
+});
+
+/* ================= part registry ================= */
+const root=new THREE.Group();scene.add(root);
+const parts=[]; // {obj, base:Vector3, ex:Vector3, cat}
+const CAT={body:'Kaporta',int:'İç mekân',eng:'Motor bölümü',chs:'Şasi & süspansiyon',whl:'Tekerlek & fren',trk:'Bagaj',lgt:'Aydınlatma'};
+function part(obj,cat,name,desc,ex,parent){
+  obj.userData.part={cat,name,desc};obj.userData.cat=cat;
+  (parent||root).add(obj);
+  parts.push({obj,base:obj.position.clone(),ex:new THREE.Vector3().fromArray(ex||[0,0,0]),cat});
+  obj.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  return obj;
+}
+function mesh(geo,mat,x,y,z){const m=new THREE.Mesh(geo,mat);if(x!==undefined)m.position.set(x,y,z);return m;}
+function groupFrom(bucket,prefix,matInfo){ // collect loft geometries with given prefix into a group
+  const g=new THREE.Group();
+  for(const k in bucket){const [p,mat0]=k.split('|');const mat=mat0.split('#')[0];if(p!==prefix)continue;const m=new THREE.Mesh(bucket[k],M[mat==='chrome'?'bodyChrome':mat]);
+    if(matInfo&&matInfo[mat]){m.userData.part=matInfo[mat];}
+    if(mat==='glass')m.renderOrder=2;g.add(m);}
+  return g;
+}
+const LAMP_INFO={
+  headlamp:{cat:CAT.lgt,name:'Ön far (halojen)',desc:'Astra J makyajlı kasaya özgü kanat (wing) formunda far grubu. Edition pakette H7 halojen kısa/uzun far, entegre gündüz farı çizgisi.'},
+  drl:{cat:CAT.lgt,name:'Gündüz farı çizgisi',desc:'Far içindeki kanat şeklindeki ışık imzası. "Farlar" düğmesiyle yakabilirsin.'},
+  tail:{cat:CAT.lgt,name:'Arka stop lambaları',desc:'Çamurluktan bagaj kapağına taşan iki parçalı stop grubu. İç parça bagaj kapağıyla birlikte açılır.'},
+  fog:{cat:CAT.lgt,name:'Ön sis farları',desc:'Tampon altındaki krom çerçeveli sis farları (Edition Plus pakette standart).'},
+  grille:{cat:CAT.body,name:'Ön ızgara & alt hava girişi',desc:'Krom çıtalı üst ızgara ve petek desenli alt hava girişi. Radyatöre hava sağlar.'},
+};
+
+// ---- static shell
+const shell=groupFrom(bodyParts,'shell',LAMP_INFO);
+part(shell,CAT.body,'Gövde (kaporta)','Çelik monokok gövde: çamurluklar, marşpiyeller, tavan direkleri ve tamponlar. Sedan kasa 4658 mm uzunluğunda, hatchback’ten 239 mm daha uzun.',[0,0,0]);
+const greenhouse=groupFrom(greenParts,'green',{glass:{cat:CAT.body,name:'Camlar',desc:'Lamine ön cam, temperli yan ve arka camlar. Sedan’a özgü küçük üçüncü yan cam C direğinin önünde.'}});
+greenhouse.children.slice().forEach(m=>{if(m.material!==M.paint&&m.material!==M.blackTrim)return;const g=m.geometry.clone(),p=g.attributes.position,v=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const d=new THREE.Vector3(0,0.65-v.y,-v.z).normalize().multiplyScalar(0.025);p.setXYZ(i,v.x,v.y+d.y,v.z+d.z);}
+  const hl=new THREE.Mesh(g,M.headliner);hl.userData.part={cat:CAT.int,name:'Tavan döşemesi',desc:'Açık gri kumaş tavan döşemesi, ön okuma lambaları ve güneşlikler (makyajlı aynalı).'};greenhouse.add(hl);});
+part(greenhouse,CAT.body,'Tavan & direkler','A, B ve C direkleri ile tavan sacı. Sedan’ın coupé benzeri inen tavan hattı arka cama yumuşakça bağlanır.',[0,0.75,0]);
+// ---- hood
+function hinged(prefix,pivot,cat,name,desc,ex,extra){
+  const pv=new THREE.Group();pv.position.copy(pivot);
+  const inner=groupFrom(bodyParts,prefix,LAMP_INFO);
+  const g2=groupFrom(greenParts,prefix);g2.children.slice().forEach(c=>inner.add(c));
+  inner.position.set(-pivot.x,-pivot.y,-pivot.z);pv.add(inner);
+  if(extra)extra(inner);
+  part(pv,cat,name,desc,ex);return pv;
+}
+const hood=hinged('hood',new THREE.Vector3(0.97,1.0,0),CAT.body,'Motor kaputu','Gaz amortisörsüz, çubuk dayamalı çelik kaput. İç yüzünde ses yalıtım keçesi bulunur.',[0.2,0.9,0],in_=>{
+});
+const trunk=hinged('trunk',new THREE.Vector3(-1.65,1.05,0),CAT.trk,'Bagaj kapağı','Krom çıtalı bagaj kapağı. Plaka, geri vites kamerası yeri ve iç stop lambaları kapağın üzerindedir.',[-0.35,0.75,0],in_=>{
+  const by=0.885,badge=mesh(new THREE.TorusGeometry(0.05,0.008,8,32),M.bodyChrome,rearX(by,0)-0.006,by,0);badge.rotation.y=Math.PI/2;in_.add(badge);
+  const bb=mesh(rbox(0.006,0.012,0.08,0.003),M.bodyChrome,rearX(by,0)-0.008,by,0);in_.add(bb);
+  const nm=mesh(new THREE.PlaneGeometry(0.16,0.025),new THREE.MeshBasicMaterial({transparent:true,map:canvasTex(256,40,(x,w,h)=>{x.fillStyle='#d9dde1';x.font='bold 30px Arial';x.textAlign='center';x.fillText('A S T R A',w/2,32);})}),rearX(0.835,-0.18)-0.004,0.835,-0.18);nm.rotation.y=-Math.PI/2;in_.add(nm);
+  const lining=mesh(new THREE.PlaneGeometry(0.45,1.1),M.carpet,-1.92,1.02,0);lining.rotation.x=-Math.PI/2;lining.rotation.z=Math.PI/2;lining.rotation.y=-0.12;in_.add(lining);
+});
+function plateTex(){return canvasTex(512,112,(x,w,h)=>{x.fillStyle='#f4f4f0';x.fillRect(0,0,w,h);x.fillStyle='#1d4fb5';x.fillRect(0,0,58,h);x.fillStyle='#fff';x.font='bold 30px Arial';x.fillText('TR',8,86);x.fillStyle='#111';x.font='bold 74px Arial';x.textBaseline='middle';x.fillText('34 AJ 2017',78,60);x.strokeStyle='#111';x.lineWidth=5;x.strokeRect(2,2,w-4,h-4);});}
+
+// ---- doors
+const DOORS={};
+function makeDoor(key,front,side){
+  const sgn=side==='r'?1:-1, hx=front?DOOR.fl[1]:DOOR.rl[1];
+  const pivot=new THREE.Vector3(hx,0,sgn*0.86);
+  const nm=(front?'Ön ':'Arka ')+(side==='l'?'sol':'sağ')+' kapı';
+  const pv=hinged(key,pivot,CAT.body,nm,
+    front?'Yan darbe kirişli çelik kapı. Elektrikli cam, elektrikli & ısıtmalı ayna, iç tarafta hoparlör ve kapı döşemesi.':'Arka kapı; elektrikli cam (Edition’da standart) ve çocuk kilidi. Alt arka köşesi tekerlek kemerine göre kesilmiştir.',
+    [0,0.05,sgn*0.85],in_=>{
+      // door card (inner trim) from offset copy of skin
+      in_.children.slice().forEach(m=>{
+        if(m.material!==M.paint)return;
+        const g=m.geometry.clone(),p=g.attributes.position,n=g.attributes.normal;
+        for(let i=0;i<p.count;i++){p.setXYZ(i,p.getX(i)-0*n.getX(i),p.getY(i),p.getZ(i)-sgn*0.055);} g.computeVertexNormals();
+        const card=new THREE.Mesh(g,M.doorCard);card.userData.part={cat:CAT.int,name:'Kapı döşemesi',desc:'Kumaş kaplı kapı döşemesi, kolçak, iç açma kolu ve cam düğmeleri. Ön kapılarda 16,5 cm hoparlör.'};in_.add(card);
+      });
+      const x0=front?0.55:-0.45;
+      const arm=mesh(rbox(0.5,0.05,0.09,0.02),M.dash,x0,0.68,sgn*0.79);in_.add(arm);
+      const pull=mesh(rbox(0.12,0.03,0.02,0.008),M.dashTrim,x0+0.18,0.80,sgn*0.80);in_.add(pull);
+      const sp=mesh(new THREE.CylinderGeometry(0.075,0.075,0.01,24),M.plastic,x0-0.05,0.42,sgn*0.80);sp.rotation.x=Math.PI/2;in_.add(sp);
+      const hx=front?0.12:-0.82,hy=front?0.885:0.895,handle=mesh(rbox(0.17,0.032,0.03,0.014),M.bodyChrome,hx,hy,sideZ(hx,hy,sgn)+sgn*0.008);in_.add(handle);
+      if(front){
+        const mir=new THREE.Group();mir.position.set(0.84,1.03,sgn*0.88);
+        const cap=mesh(rbox(0.2,0.13,0.1,0.045),M.paint,0,0.02,sgn*0.09);
+        const gl=mesh(new THREE.PlaneGeometry(0.17,0.1),M.chrome,-0.101,0.02,sgn*0.09);gl.rotation.y=-Math.PI/2;
+        const arm2=mesh(rbox(0.09,0.05,0.12,0.015),M.blackTrim,0.02,-0.02,sgn*0.02);
+        const rep=mesh(rbox(0.06,0.012,0.03,0.005),new THREE.MeshStandardMaterial({color:0xffa31a,emissive:0x331a00}),0.02,-0.04,sgn*0.13);
+        mir.add(cap,gl,arm2,rep);mir.userData.part={cat:CAT.body,name:'Dış dikiz aynası',desc:'Elektrikli ayarlı, ısıtmalı, sinyal tekrarlayıcılı gövde renkli ayna.'};in_.add(mir);
+      }
+    });
+  pv.userData.sgn=sgn;DOORS[key]=pv;return pv;
+}
+makeDoor('door_fl',true,'l');makeDoor('door_fr',true,'r');makeDoor('door_rl',false,'l');makeDoor('door_rr',false,'r');
+
+// front details
+(function(){
+  const g=new THREE.Group();
+  const gy=0.648,fx=frontX(gy,0);
+  const badge=mesh(new THREE.TorusGeometry(0.058,0.01,10,40),M.bodyChrome,fx+0.012,gy,0);badge.rotation.y=Math.PI/2;g.add(badge);
+  const disc=mesh(new THREE.CircleGeometry(0.05,32),M.blackTrim,fx+0.008,gy,0);disc.rotation.y=Math.PI/2;g.add(disc);
+  const bolt=new THREE.Shape();bolt.moveTo(-0.05,0.004);bolt.lineTo(0.012,0.016);bolt.lineTo(0.004,0.004);bolt.lineTo(0.05,-0.004);bolt.lineTo(-0.012,-0.016);bolt.lineTo(-0.004,-0.004);
+  const bm=mesh(new THREE.ExtrudeGeometry(bolt,{depth:0.008,bevelEnabled:false}),M.bodyChrome,fx+0.01,gy,0);bm.rotation.y=Math.PI/2;g.add(bm);
+  // chrome "wing" bar following the fascia, sweeping up under the headlamps
+  [-1,1].forEach(sg=>{const pts=[];for(let i=0;i<=24;i++){const z=sg*(0.06+i/24*0.40),y=gy+0.012*Math.pow(i/24,2)+0.004;pts.push(new THREE.Vector3(frontX(y,z)+0.006,y,z));}
+    g.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),40,0.011,8),M.bodyChrome));});
+  const py=0.505,plate=mesh(new THREE.PlaneGeometry(0.52,0.11),new THREE.MeshStandardMaterial({map:plateTex(),roughness:0.5}),frontX(py,0)+0.006,py,0);plate.rotation.y=Math.PI/2;g.add(plate);
+  // fog-lamp chrome blades
+  [-1,1].forEach(sg=>{const z=sg*0.66,y=0.385;const b=mesh(rbox(0.01,0.012,0.17,0.004),M.bodyChrome,frontX(y,z)+0.004,y,z);b.rotation.y=-sg*0.35;g.add(b);});
+  // rear plate in the bumper recess
+  const rpy=0.6,rp=mesh(new THREE.PlaneGeometry(0.52,0.11),new THREE.MeshStandardMaterial({map:plateTex(),roughness:0.5}),rearX(rpy,0)-0.006,rpy,0);rp.rotation.y=-Math.PI/2;g.add(rp);
+  // side markers on front fenders, fuel filler flap (right rear)
+  [-1,1].forEach(sg=>{const x=1.02,y=0.73,m=mesh(rbox(0.12,0.018,0.01,0.006),M.bodyChrome,x,y,sideZ(x,y,sg)+sg*0.004);m.rotation.z=0.12;g.add(m);});
+  const fu=mesh(new THREE.CylinderGeometry(0.075,0.075,0.006,32),M.paint,-1.78,0.86,sideZ(-1.78,0.86,1)+0.002);fu.rotation.x=Math.PI/2;g.add(fu);
+  part(g,CAT.body,'Krom detaylar, amblem & plakalar','Kanat formundaki krom ızgara çıtası amblemle birleşir (makyajlı Astra J’nin imzası). Sis farı kromları, çamurluk yan krom çıtası ve sağ arka yakıt kapağı.',[0.35,0,0]);
+})();
+// wheel arch liners + under floor
+(function(){
+  const g=new THREE.Group();
+  [[FX,1],[FX,-1],[RX,1],[RX,-1]].forEach(([x,s])=>{const c=mesh(new THREE.CylinderGeometry(0.38,0.38,0.34,32,1,true,Math.PI*0.5,Math.PI),M.liner,x,WR,s*0.74);c.rotation.x=Math.PI/2;c.rotation.y=0;g.add(c);});
+  [[FX,1,0.385],[FX,-1,0.385],[RX,1,0.38],[RX,-1,0.38]].forEach(([x,s,r])=>{const t=mesh(new THREE.TorusGeometry(r+0.012,0.022,8,48,Math.PI*1.12),M.plastic,x,WR,s*0.885);t.rotation.z=-Math.PI*0.06;t.scale.z=0.8;g.add(t);});
+  const fl=mesh(new THREE.PlaneGeometry(3.4,1.5),M.liner,-0.3,0.215,0);fl.rotation.x=-Math.PI/2;g.add(fl);
+  part(g,CAT.body,'Davlumbazlar & taban','Plastik çamurluk davlumbazları ve çelik taban sacı.',[0,-0.15,0]);
+})();
+
+/* ================= wheels ================= */
+function tireGeo(){const pts=[[0.205,-0.098],[0.255,-0.104],[0.300,-0.104],[0.318,-0.094],[0.326,-0.07],[0.328,0],[0.326,0.07],[0.318,0.094],[0.300,0.104],[0.255,0.104],[0.205,0.098]].map(p=>new THREE.Vector2(p[0],p[1]));
+  const g=new THREE.LatheGeometry(pts,56);g.rotateX(Math.PI/2);return g;}
+function alloy(){
+  const g=new THREE.Group();
+  const barrel=new THREE.LatheGeometry([[0.203,-0.095],[0.207,-0.09],[0.205,0.08],[0.21,0.095],[0.19,0.096]].map(p=>new THREE.Vector2(p[0],p[1])),48);barrel.rotateX(Math.PI/2);
+  g.add(mesh(barrel,M.rim));
+  const hub=mesh(new THREE.CylinderGeometry(0.06,0.07,0.05,24),M.rim,0,0,0.06);hub.rotation.x=Math.PI/2;g.add(hub);
+  const cap=mesh(new THREE.CylinderGeometry(0.03,0.03,0.012,24),M.blackTrim,0,0,0.088);cap.rotation.x=Math.PI/2;g.add(cap);
+  for(let i=0;i<5;i++){for(const o of[-0.11,0.11]){const sp=mesh(rbox(0.15,0.026,0.024,0.009),M.rim);sp.position.set(0.12,0,0.075);
+    const piv=new THREE.Group();piv.rotation.z=i*Math.PI*2/5+o;sp.rotation.z=-o*0.6;piv.add(sp);g.add(piv);}}
+  return g;
+}
+function hubcapWheel(){
+  const g=new THREE.Group();
+  const steel=new THREE.LatheGeometry([[0.203,-0.095],[0.207,-0.09],[0.205,0.08],[0.21,0.095],[0.19,0.096]].map(p=>new THREE.Vector2(p[0],p[1])),48);steel.rotateX(Math.PI/2);g.add(mesh(steel,M.steel));
+  const capG=new THREE.LatheGeometry([[0,0.1],[0.05,0.1],[0.12,0.094],[0.17,0.088],[0.2,0.078],[0.205,0.07]].map(p=>new THREE.Vector2(p[0],p[1])),40);capG.rotateX(Math.PI/2);
+  const cap=mesh(capG,M.hubcap);cap.material=M.hubcap;g.add(cap);
+  for(let i=0;i<10;i++){const s=mesh(rbox(0.07,0.018,0.01,0.004),M.blackTrim);const p=new THREE.Group();p.rotation.z=i*Math.PI/5;s.position.set(0.15,0,0.088);p.add(s);g.add(p);}
+  return g;
+}
+const WHEELS=[];
+[[FX,1,'Sağ ön'],[FX,-1,'Sol ön'],[RX,1,'Sağ arka'],[RX,-1,'Sol arka']].forEach(([x,s,n])=>{
+  const w=new THREE.Group();w.position.set(x,WR,s*TRACK);
+  const spin=new THREE.Group();w.add(spin);
+  const face=new THREE.Group();face.scale.z=s;spin.add(face);
+  face.add(mesh(tireGeo(),M.tire));
+  const a=alloy(),h=hubcapWheel();face.add(a,h);w.userData.alloy=a;w.userData.hubcap=h;
+  const disc=mesh(new THREE.CylinderGeometry(x>0?0.14:0.132,x>0?0.14:0.132,x>0?0.026:0.012,40),M.disc,0,0,-s*0.02);disc.rotation.x=Math.PI/2;w.add(disc);
+  const cal=mesh(rbox(0.09,0.12,0.06,0.02),M.caliper,-0.11*(x>0?1:-1),0.06,-s*0.02);cal.rotation.z=0.5;w.add(cal);
+  w.userData.spin=spin;WHEELS.push(w);
+  part(w,CAT.whl,n+' tekerlek','205/60 R16 lastik, 16" jant (Edition Plus: 5 çift kollu alaşım; Edition: çelik jant + kapak). '+(x>0?'Ön: 276 mm havalı disk, tek pistonlu kaliper.':'Arka: 268 mm dolu disk, el freni kaliperde entegre.'),[0,0,s*0.55]);
+});
+
+/* ================= interior ================= */
+function seat(x,z,front){
+  const g=new THREE.Group();g.position.set(x,0,z);
+  const cush=mesh(rbox(0.5,0.12,0.5,0.05),M.fabric,0,0.43,0);g.add(cush);
+  const ins=mesh(rbox(0.36,0.02,0.28,0.01),M.fabric2,0.0,0.49,0);g.add(ins);
+  const back=new THREE.Group();back.position.set(-0.22,0.48,0);back.rotation.z=-0.22;g.add(back);
+  back.add(mesh(rbox(0.13,0.62,0.5,0.05),M.fabric,0,0.31,0));
+  back.add(mesh(rbox(0.02,0.42,0.28,0.008),M.fabric2,0.065,0.31,0));
+  back.add(mesh(rbox(0.11,0.2,0.27,0.05),M.fabric,0.01,0.75,0));
+  const p1=mesh(new THREE.CylinderGeometry(0.006,0.006,0.06),M.dashTrim,0.01,0.64,0.07),p2=p1.clone();p2.position.z=-0.07;back.add(p1,p2);
+  g.add(mesh(rbox(0.42,0.08,0.06,0.02),M.steel,0,0.33,0.2),mesh(rbox(0.42,0.08,0.06,0.02),M.steel,0,0.33,-0.2));
+  return g;
+}
+const INT=new THREE.Group();
+part(seat(-0.2,-0.37,true),CAT.int,'Sürücü koltuğu','Yükseklik ayarlı, manuel bel desteği olan kumaş sürücü koltuğu. Aktif koltuk başlığı (çarpışmada öne gelir).',[0,0.55,-0.35]);
+part(seat(-0.2,0.37,true),CAT.int,'Ön yolcu koltuğu','Kumaş ön yolcu koltuğu; yan hava yastığı koltuk sırtına entegre.',[0,0.55,0.35]);
+(function(){ // rear bench
+  const g=new THREE.Group();g.position.set(-1.08,0,0);
+  g.add(mesh(rbox(0.5,0.13,1.34,0.06),M.fabric,0,0.44,0));
+  const b=new THREE.Group();b.position.set(-0.24,0.5,0);b.rotation.z=-0.3;g.add(b);
+  b.add(mesh(rbox(0.12,0.56,0.8,0.05),M.fabric,0,0.28,0.26));b.add(mesh(rbox(0.12,0.56,0.53,0.05),M.fabric,0,0.28,-0.41));
+  [-0.42,0,0.42].forEach(z=>b.add(mesh(rbox(0.09,0.15,0.24,0.04),M.fabric,0,0.64,z)));
+  part(g,CAT.int,'Arka koltuk (60/40)','60/40 katlanabilir arka sırt; bagaja uzun eşya geçişi sağlar. 3 koltuk başlığı, 3 noktalı emniyet kemerleri, ISOFIX bağlantıları.',[-0.1,0.55,0]);
+})();
+(function(){ // dashboard
+  const g=new THREE.Group();
+  const sh=new THREE.Shape();
+  sh.moveTo(0.98,0.93);sh.lineTo(0.70,0.985);sh.quadraticCurveTo(0.52,0.99,0.46,0.92);sh.lineTo(0.44,0.80);sh.quadraticCurveTo(0.47,0.70,0.58,0.62);sh.lineTo(0.68,0.52);sh.lineTo(0.98,0.52);sh.closePath();
+  const geo=new THREE.ExtrudeGeometry(sh,{depth:1.56,bevelEnabled:true,bevelThickness:0.02,bevelSize:0.02,bevelSegments:3,curveSegments:10});geo.translate(0,0,-0.78);
+  const d=mesh(geo,M.dash);g.add(d);
+  const trim=mesh(rbox(0.02,0.025,1.4,0.008),M.dashTrim,0.455,0.85,0);g.add(trim);
+  // binnacle + cluster
+  const bin=mesh(rbox(0.2,0.1,0.42,0.04),M.dash,0.55,0.98,-0.37);g.add(bin);
+  const cl=mesh(new THREE.PlaneGeometry(0.36,0.14),new THREE.MeshBasicMaterial({map:clusterTex()}),0.465,0.92,-0.37);cl.rotation.y=-Math.PI/2;cl.rotation.x=0;cl.rotateX(-0.15);
+  cl.userData.part={cat:CAT.int,name:'Gösterge paneli',desc:'Analog devir saati (6500 d/d kırmızı bölge) ve hız göstergesi, ortada yol bilgisayarı ekranı: anlık/ortalama tüketim, menzil, dış sıcaklık.'};g.add(cl);
+  // center stack
+  const st=mesh(rbox(0.12,0.4,0.3,0.03),M.dash,0.5,0.7,0);st.rotation.z=-0.35;g.add(st);
+  const scr=mesh(new THREE.PlaneGeometry(0.26,0.13),new THREE.MeshBasicMaterial({map:null}),0.432,0.885,0);scr.rotation.y=-Math.PI/2;scr.rotateX(-0.25);g.userData.screen=scr;
+  scr.userData.part={cat:CAT.int,name:'Multimedya ekranı',desc:'Edition: CD 300 radyo, Bluetooth, USB/AUX, 7 hoparlör. Edition Plus: IntelliLink R4.0 7" dokunmatik ekran, Apple CarPlay ve Android Auto.'};g.add(scr);
+  const btn=mesh(new THREE.PlaneGeometry(0.24,0.17),new THREE.MeshBasicMaterial({map:buttonsTex()}),0.405,0.74,0);btn.rotation.y=-Math.PI/2;btn.rotateX(-0.35);
+  btn.userData.part={cat:CAT.int,name:'Orta konsol tuşları',desc:'Astra J’nin karakteristik çok tuşlu orta konsolu: radyo kontrolleri, dörtlü flaşör, ESP-off ve klima ayarları.'};g.add(btn);
+  [-0.08,0,0.08].forEach(z=>{const k=mesh(new THREE.CylinderGeometry(0.022,0.022,0.025,24),M.dashTrim,0.39,0.62,z);k.rotation.z=Math.PI/2-0.35;k.userData.part={cat:CAT.int,name:'Manuel klima kontrolü',desc:'Sıcaklık, fan hızı ve hava dağıtımı için üç döner düğme; A/C ve arka cam rezistansı tuşları. (Edition Plus: çift bölgeli otomatik klima)'};g.add(k);});
+  [-0.68,-0.12,0.12,0.68].forEach(z=>{const v=mesh(rbox(0.03,0.06,0.12,0.012),M.dashTrim,0.47,0.93,z);g.add(v);});
+  // glovebox line
+  g.add(mesh(rbox(0.02,0.005,0.42,0.002),M.plastic,0.452,0.79,0.38));
+  part(g,CAT.int,'Ön konsol (torpido)','Yumuşak dokulu üst panel, gümüş renkli dekor çıtası, kilitli ve soğutmalı torpido gözü, 4 havalandırma ızgarası.',[0.25,0.55,0]);
+})();
+(function(){ // steering wheel
+  const g=new THREE.Group();g.position.set(0.36,0.86,-0.37);g.rotation.z=-0.45;
+  const rimG=mesh(new THREE.TorusGeometry(0.185,0.019,14,56),M.dash);rimG.rotation.y=Math.PI/2;g.add(rimG);
+  const hub=mesh(rbox(0.06,0.11,0.13,0.03),M.dash,0,0,0);g.add(hub);
+  const em=mesh(new THREE.TorusGeometry(0.022,0.004,8,24),M.chrome,-0.032,0.0,0);em.rotation.y=Math.PI/2;g.add(em);
+  [[0,0,1],[0,0,-1],[0,-1,0]].forEach(([_,y,z])=>{const s=mesh(rbox(0.03,y?0.15:0.035,z?0.15:0.04,0.012),M.dash,0.005,y*0.09,z*0.1);g.add(s);});
+  [-0.06,0.06].forEach(z=>g.add(mesh(rbox(0.012,0.04,0.03,0.006),M.dashTrim,-0.03,-0.02,z*1.2)));
+  const col=mesh(new THREE.CylinderGeometry(0.035,0.045,0.32,16),M.plastic,0.16,0,0);col.rotation.z=Math.PI/2;g.add(col);
+  part(g,CAT.int,'Direksiyon','Yükseklik ve derinlik ayarlı direksiyon; sürücü hava yastığı, ses sistemi ve hız sabitleyici tuşları. Elektrikli hidrolik direksiyon pompası.',[-0.15,0.7,0]);
+})();
+(function(){ // center console + gear lever + handbrake
+  const g=new THREE.Group();
+  g.add(mesh(rbox(0.75,0.18,0.22,0.04),M.dash,0.05,0.39,0));
+  g.add(mesh(rbox(0.25,0.06,0.2,0.02),M.dash,-0.45,0.52,0)); // armrest
+  [0.18,0.25].forEach(x=>g.add(mesh(new THREE.CylinderGeometry(0.035,0.035,0.01,20),M.plastic,x-0.25,0.485,0)));
+  const lever=new THREE.Group();lever.position.set(0.25,0.48,0);
+  const boot=mesh(new THREE.CylinderGeometry(0.02,0.06,0.09,16),M.boot,0,0.04,0);lever.add(boot);
+  const rod=mesh(new THREE.CylinderGeometry(0.009,0.009,0.12,8),M.chrome,0,0.13,0);lever.add(rod);
+  const knob=mesh(new THREE.SphereGeometry(0.032,24,16),new THREE.MeshStandardMaterial({color:0x222,roughness:0.5}),0,0.205,0);lever.add(knob);
+  const pat=mesh(new THREE.CircleGeometry(0.02,24),new THREE.MeshBasicMaterial({map:canvasTex(128,128,(x,w,h)=>{x.fillStyle='#16181b';x.fillRect(0,0,w,h);x.strokeStyle='#e8e8e8';x.fillStyle='#e8e8e8';x.lineWidth=5;x.font='bold 22px Arial';x.textAlign='center';
+    const cs=[30,64,98];x.beginPath();cs.forEach(c=>{x.moveTo(c,30);x.lineTo(c,98);});x.moveTo(30,64);x.lineTo(98,64);x.stroke();
+    [['R',30,22],['1',30,120],['3',64,22],['2',64,120],['5',98,22],['4',98,120]].forEach(([t,a,b])=>x.fillText(t,a,b>100?b-4:b+6));})}),0,0.238,0);
+  pat.rotation.x=-Math.PI/2;pat.rotation.z=Math.PI/2;lever.add(pat);
+  lever.userData.part={cat:CAT.int,name:'5 ileri manuel vites kolu',desc:'F17 tipi 5 ileri + geri manuel şanzıman kolu. Geri vites için kolun altındaki halka kaldırılır. Vites oranları: 1:3.73 · 2:2.14 · 3:1.41 · 4:1.12 · 5:0.89.'};
+  g.add(lever);
+  const hb=new THREE.Group();hb.position.set(-0.12,0.49,0);hb.rotation.z=0.22;
+  hb.add(mesh(rbox(0.26,0.035,0.045,0.015),M.dash,-0.06,0.02,0));hb.add(mesh(rbox(0.05,0.03,0.046,0.012),M.dashTrim,0.06,0.025,0));
+  hb.userData.part={cat:CAT.int,name:'El freni kolu',desc:'Mekanik el freni; kablolarla arka kaliperleri çalıştırır.'};g.add(hb);
+  part(g,CAT.int,'Orta konsol','Vites kolu, el freni, bardaklıklar ve kayar kolçak; 12V priz ve AUX/USB girişi önde.',[0,0.45,0]);
+})();
+(function(){ // pedals
+  const g=new THREE.Group();
+  [['Debriyaj',-0.53],['Fren',-0.39],['Gaz',-0.27]].forEach(([n,z],i)=>{
+    const arm=mesh(new THREE.BoxGeometry(0.015,0.2,0.015),M.steel,0.78,0.47,z);arm.rotation.z=-0.4;g.add(arm);
+    const pad=mesh(rbox(0.03,i===2?0.11:0.065,i===2?0.06:0.07,0.008),M.blackTrim,0.73,0.37,z);pad.rotation.z=-0.55;g.add(pad);
+  });
+  part(g,CAT.int,'Pedallar (3 pedal)','Debriyaj, fren ve gaz pedalı. Hidrolik debriyaj; fren hidrolik servo destekli, ABS + EBD + ESP.',[0.1,0.4,0]);
+})();
+(function(){ // headliner + parcel shelf + carpet
+  const g=new THREE.Group();
+  const car=mesh(new THREE.PlaneGeometry(2.4,1.6),M.carpet,-0.4,0.26,0);car.rotation.x=-Math.PI/2;g.add(car);
+  const shelf=mesh(new THREE.PlaneGeometry(0.42,1.4),M.carpet,-1.55,1.03,0);shelf.rotation.x=-Math.PI/2;g.add(shelf);
+  [-0.45,0.45].forEach(z=>g.add(mesh(rbox(0.12,0.04,0.2,0.015),M.plastic,-1.6,1.05,z)));
+  part(g,CAT.int,'Taban halısı & arka raf','Ses yalıtımlı taban halısı; arka raf altında hoparlör yuvaları.',[0,-0.05,0]);
+})();
+
+/* ================= trunk space ================= */
+(function(){
+  const g=new THREE.Group();
+  const flo=mesh(new THREE.PlaneGeometry(0.62,1.24),M.carpet,-1.93,0.47,0);flo.rotation.x=-Math.PI/2;g.add(flo);
+  [-1,1].forEach(s=>{const w=mesh(new THREE.PlaneGeometry(0.62,0.48),M.carpet,-1.93,0.71,s*0.62);g.add(w);});
+  const back=mesh(new THREE.PlaneGeometry(1.24,0.55),M.carpet,-1.62,0.74,0);back.rotation.y=Math.PI/2;g.add(back);
+  part(g,CAT.trk,'Bagaj hacmi','460 litre bagaj (sedan); arka koltuklar katlandığında 1010 litreye kadar. Halı kaplı zemin, yan kancalar.',[-0.2,0.25,0]);
+  const sp=new THREE.Group();sp.position.set(-1.98,0.37,0);
+  const t=mesh(tireGeo(),M.tire);t.scale.set(0.92,0.92,0.75);sp.add(t);const r=mesh(new THREE.CylinderGeometry(0.19,0.19,0.1,24),M.steel);r.rotation.x=Math.PI/2;sp.add(r);
+  sp.rotation.x=Math.PI/2;
+  part(sp,CAT.trk,'Stepne & avadanlık','Bagaj zemini altında yedek lastik (kurtarıcı tip), kriko ve bijon anahtarı.',[-0.3,0.35,0]);
+})();
+
+/* ================= engine bay ================= */
+(function(){
+  const E=[];
+  const fw=mesh(new THREE.PlaneGeometry(1.4,0.5),M.engineDark,1.0,0.74,0);fw.rotation.y=Math.PI/2;
+  E.push([fw,'Torpido sacı (firewall)','Motor bölümünü kabinden ayıran ses yalıtımlı sac.',[0,0,0]]);
+  // engine block assembly
+  const eng=new THREE.Group();eng.position.set(1.55,0,0.05);
+  const block=mesh(rbox(0.34,0.32,0.56,0.03),M.engine,0,0.5,0);eng.add(block);
+  const sump=mesh(rbox(0.3,0.1,0.5,0.03),M.alu,0,0.31,0);eng.add(sump);
+  const head=mesh(rbox(0.3,0.1,0.56,0.03),M.alu,0,0.70,0);eng.add(head);
+  const cover=mesh(rbox(0.28,0.05,0.5,0.025),M.engineDark,0,0.77,0);eng.add(cover);
+  const lbl=mesh(new THREE.PlaneGeometry(0.2,0.06),new THREE.MeshBasicMaterial({map:canvasTex(256,80,(x,w,h)=>{x.fillStyle='#1b1c1f';x.fillRect(0,0,w,h);x.fillStyle='#c9cdd2';x.font='bold 40px Arial';x.textAlign='center';x.fillText('ECOTEC',w/2,44);x.font='20px Arial';x.fillText('1.6 16V TWINPORT',w/2,70);})}),0,0.797,0);lbl.rotation.x=-Math.PI/2;lbl.rotation.z=Math.PI/2;eng.add(lbl);
+  for(let i=0;i<4;i++){const coil=mesh(new THREE.CylinderGeometry(0.018,0.018,0.05,12),M.red,-0.04,0.81,-0.18+i*0.12);eng.add(coil);}
+  const cap=mesh(new THREE.CylinderGeometry(0.025,0.025,0.02,16),M.yellow,0.08,0.81,0.18);eng.add(cap);
+  const dip=mesh(new THREE.TorusGeometry(0.015,0.005,8,16),M.yellow,0.15,0.74,-0.22);eng.add(dip);
+  const belt=mesh(new THREE.CylinderGeometry(0.07,0.07,0.03,24),M.engineDark,0.02,0.45,0.30);belt.rotation.x=Math.PI/2;eng.add(belt);
+  E.push([eng,'Motor: 1.6 Ecotec (A16XER)','Sıralı 4 silindir, 16 valf DOHC, Twinport emme ve çift değişken eksantrik zamanlaması. 1598 cc · 79,0 × 81,5 mm · sıkıştırma 10,8:1 · 115 PS @ 6000 d/d · 155 Nm @ 4000 d/d. Triger kayışlı, ateşleme bobinleri tek modülde.',[0,0.55,0]]);
+  // intake manifold
+  const intake=new THREE.Group();intake.position.set(1.55,0,0.05);
+  for(let i=0;i<4;i++){const c=new THREE.CatmullRomCurve3([new THREE.Vector3(0.15,0.62,-0.18+i*0.12),new THREE.Vector3(0.26,0.68,-0.18+i*0.12),new THREE.Vector3(0.28,0.56,-0.15+i*0.1),new THREE.Vector3(0.24,0.46,-0.1+i*0.07)]);
+    intake.add(mesh(new THREE.TubeGeometry(c,16,0.022,10),M.engineDark));}
+  const plen=mesh(rbox(0.08,0.1,0.42,0.03),M.engineDark,0.24,0.46,0.04);intake.add(plen);
+  const tb=mesh(new THREE.CylinderGeometry(0.04,0.04,0.06,20),M.alu,0.24,0.46,0.3);tb.rotation.x=Math.PI/2;intake.add(tb);
+  E.push([intake,'Emme manifoldu (Twinport)','Plastik emme manifoldu; Twinport sistemiyle düşük devirde kanalın biri kapanır, hava hızı artar, tork ve tüketim iyileşir. Elektronik gaz kelebeği.',[0.35,0.75,0]]);
+  // exhaust manifold
+  const exh=new THREE.Group();exh.position.set(1.55,0,0.05);
+  exh.add(mesh(rbox(0.06,0.14,0.48,0.02),M.alu,-0.2,0.6,0));
+  const cat=mesh(new THREE.CylinderGeometry(0.06,0.06,0.22,20),M.alu,-0.26,0.4,0.05);exh.add(cat);
+  E.push([exh,'Egzoz manifoldu & katalizör','Isı kalkanlı egzoz manifoldu ve yakın bağlı katalitik konvertör; lambda sensörleri önde ve arkada.',[-0.25,0.6,0]]);
+  // gearbox
+  const gb=new THREE.Group();
+  const gbm=mesh(rbox(0.32,0.28,0.3,0.06),M.alu,1.52,0.45,-0.39);gb.add(gbm);
+  const bell=mesh(new THREE.CylinderGeometry(0.15,0.15,0.08,28),M.alu,1.52,0.48,-0.24);bell.rotation.x=Math.PI/2;gb.add(bell);
+  E.push([gb,'Şanzıman: F17 5 ileri manuel','Kablolu kumandalı 5 ileri + geri manuel şanzıman, diferansiyel entegre. Son çevrim oranı ≈ 3,94. Hidrolik debriyaj, çift kütleli volan yok (tek kütleli).',[0,0.25,-0.55]]);
+  // battery
+  const bat=new THREE.Group();bat.add(mesh(rbox(0.24,0.18,0.17,0.01),M.battery,1.28,0.66,-0.56));
+  bat.add(mesh(new THREE.CylinderGeometry(0.012,0.012,0.02),M.red,1.36,0.76,-0.51),mesh(new THREE.CylinderGeometry(0.012,0.012,0.02),M.engineDark,1.36,0.76,-0.61));
+  E.push([bat,'Akü (12V · 60 Ah)','Sol arka köşede, torpido sacı önünde. Start-stop’suz versiyonda standart kurşun-asit akü.',[0,0.7,-0.3]]);
+  // air box
+  const air=new THREE.Group();air.add(mesh(rbox(0.3,0.14,0.22,0.04),M.engineDark,1.62,0.68,0.5));
+  const duct=new THREE.CatmullRomCurve3([new THREE.Vector3(1.62,0.68,0.39),new THREE.Vector3(1.72,0.68,0.34),new THREE.Vector3(1.79,0.5,0.35)]);air.add(mesh(new THREE.TubeGeometry(duct,16,0.035,10),M.engineDark));
+  E.push([air,'Hava filtresi kutusu','Panel tipi kuru hava filtresi; temiz hava borusuyla gaz kelebeğine bağlanır. Değişim: 30.000 km.',[0,0.8,0.25]]);
+  // coolant & brake fluid & washer
+  const cool=mesh(rbox(0.12,0.1,0.14,0.03),M.coolant,1.12,0.78,0.42);E.push([cool,'Soğutma suyu genleşme kabı','Pembe renkli Dexcool antifriz (G-12 uyumlu). Motor soğukken MIN-MAX arası seviyede olmalı.',[0,0.9,0.2]]);
+  const bf=mesh(rbox(0.09,0.07,0.1,0.02),M.reservoir,1.08,0.84,-0.33);E.push([bf,'Fren hidroliği haznesi','DOT 4 fren hidroliği; aynı hazne hidrolik debriyajı da besler. 2 yılda bir değişim önerilir.',[0,0.9,-0.1]]);
+  const ws=mesh(new THREE.CylinderGeometry(0.035,0.035,0.03,16),new THREE.MeshStandardMaterial({color:0x2a6bd1}),1.9,0.7,0.55);E.push([ws,'Cam suyu deposu kapağı','Ön cam yıkama sıvısı deposu, sağ ön köşede.',[0,0.6,0.1]]);
+  // radiator
+  const rad=new THREE.Group();rad.add(mesh(rbox(0.05,0.4,1.12,0.01),M.radiator,2.12,0.5,0));
+  const fan=mesh(new THREE.CylinderGeometry(0.17,0.17,0.04,28,1,true),M.engineDark,2.03,0.52,-0.2);fan.rotation.z=Math.PI/2;rad.add(fan);
+  const fan2=fan.clone();fan2.position.z=0.2;rad.add(fan2);
+  E.push([rad,'Radyatör & fan','Alüminyum radyatör, klima kondenseri ve elektrikli soğutma fanı. Termostat 92 °C’de açılır.',[0.45,0.2,0]]);
+  // strut towers
+  [-1,1].forEach(s=>{const t=mesh(new THREE.CylinderGeometry(0.08,0.1,0.12,20),M.paint,FX,0.72,s*0.56);E.push([t,'Amortisör kulesi','MacPherson gergi üst yatağı; gövdeye üç cıvatayla bağlanır.',[0,0.4,s*0.15]]);});
+  E.forEach(([o,n,d,ex])=>part(o,CAT.eng,n,d,ex));
+})();
+
+/* ================= chassis ================= */
+(function(){
+  const C=[];
+  // subframe
+  const sf=new THREE.Group();sf.add(mesh(rbox(0.5,0.06,1.0,0.02),M.rust,1.45,0.2,0));sf.add(mesh(rbox(0.08,0.06,1.1,0.02),M.rust,1.12,0.21,0));
+  C.push([sf,'Ön travers (subframe)','Motor, şanzıman alt bağlantıları ve salıncakları taşıyan çelik ön travers.',[0,-0.35,0]]);
+  // MacPherson struts + arms
+  [-1,1].forEach(s=>{
+    const g=new THREE.Group();
+    const d=mesh(new THREE.CylinderGeometry(0.025,0.03,0.4,14),M.steel,FX,0.58,s*0.6);d.rotation.x=-s*0.12;g.add(d);
+    const pts=[];for(let i=0;i<=120;i++){const a=i/120*Math.PI*2*5.5;pts.push(new THREE.Vector3(FX+Math.cos(a)*0.07,0.55+i/120*0.26,s*0.6+Math.sin(a)*0.07));}
+    g.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),240,0.011,6),M.spring));
+    const arm=mesh(rbox(0.34,0.03,0.42,0.015),M.steel,FX-0.08,0.24,s*0.48);g.add(arm);
+    const ds=mesh(new THREE.CylinderGeometry(0.02,0.02,0.36,10),M.steel,FX+0.02,0.33,s*0.5);ds.rotation.x=Math.PI/2;g.add(ds);
+    const boot=mesh(new THREE.CylinderGeometry(0.045,0.035,0.08,14),M.boot,FX+0.02,0.33,s*0.66);boot.rotation.x=Math.PI/2;g.add(boot);
+    C.push([g,(s<0?'Sol':'Sağ')+' ön süspansiyon (MacPherson)','MacPherson gergi, helezon yay, hidrolik amortisör, L tipi alüminyum-çelik salıncak ve aks mili (homokinetik mafsallı).',[0,-0.25,s*0.3]]);
+  });
+  // steering rack
+  const sr=mesh(new THREE.CylinderGeometry(0.025,0.025,1.0,12),M.steel,1.2,0.3,0);sr.rotation.x=Math.PI/2;
+  C.push([sr,'Direksiyon kutusu','Kremayer tipi direksiyon kutusu; elektro-hidrolik servo destekli. Kilitten kilide ≈ 2,9 tur.',[0.1,-0.3,0]]);
+  // rear torsion beam
+  const rb=new THREE.Group();
+  rb.add(mesh(rbox(0.12,0.1,1.35,0.03),M.steel,RX+0.25,0.27,0));
+  [-1,1].forEach(s=>{rb.add(mesh(rbox(0.6,0.07,0.07,0.02),M.steel,RX+0.05,0.29,s*0.62));
+    const pts=[];for(let i=0;i<=100;i++){const a=i/100*Math.PI*2*4.5;pts.push(new THREE.Vector3(RX+0.12+Math.cos(a)*0.065,0.3+i/100*0.2,s*0.55+Math.sin(a)*0.065));}
+    rb.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),200,0.011,6),M.spring));
+    const sh=mesh(new THREE.CylinderGeometry(0.022,0.022,0.36,12),M.steel,RX-0.12,0.48,s*0.66);sh.rotation.z=0.25;rb.add(sh);});
+  const watt=mesh(rbox(0.06,0.18,0.04,0.015),M.alu,RX-0.25,0.3,0);rb.add(watt);
+  C.push([rb,'Arka süspansiyon: torsiyon kirişi','Bileşik (compound crank) torsiyon kirişi, ayrı helezon yaylar ve eğik amortisörler; Watt bağlantılı yapı yanal sapmayı azaltır.',[0,-0.3,0]]);
+  // exhaust
+  const ex=new THREE.Group();
+  const path=new THREE.CatmullRomCurve3([new THREE.Vector3(1.29,0.32,0.1),new THREE.Vector3(1.0,0.2,0.1),new THREE.Vector3(0.0,0.19,0.05),new THREE.Vector3(-1.0,0.2,0.05),new THREE.Vector3(-1.5,0.26,-0.25),new THREE.Vector3(-1.85,0.29,-0.4)]);
+  ex.add(mesh(new THREE.TubeGeometry(path,60,0.025,10),M.alu));
+  const mid=mesh(new THREE.CylinderGeometry(0.06,0.06,0.4,16),M.alu,-0.35,0.19,0.05);mid.rotation.z=Math.PI/2;ex.add(mid);
+  const muf=mesh(rbox(0.38,0.14,0.36,0.06),M.alu,-2.02,0.3,-0.4);ex.add(muf);
+  const tip=mesh(new THREE.CylinderGeometry(0.03,0.03,0.14,12),M.chrome,-2.22,0.25,-0.48);tip.rotation.z=Math.PI/2;ex.add(tip);
+  C.push([ex,'Egzoz hattı','Ön boru, orta susturucu ve arka susturucu; çıkış tamponun altında gizli. Euro 5 emisyon.',[0,-0.25,0]]);
+  // fuel tank
+  const tank=mesh(rbox(0.55,0.2,0.9,0.06),M.engineDark,-0.95,0.18,0.1);
+  C.push([tank,'Yakıt deposu (56 L)','Plastik yakıt deposu arka koltuğun altında; yakıt pompası ve şamandıra depo içinde. Kapak sağ arka çamurlukta.',[0,-0.35,0]]);
+  // driveshafts
+  C.forEach(([o,n,d,ex])=>part(o,CAT.chs,n,d,ex));
+})();
+
+/* ================= textures for screens ================= */
+function clusterTex(){return canvasTex(720,280,(x,w,h)=>{
+  x.fillStyle='#050607';x.fillRect(0,0,w,h);
+  const dial=(cx,max,step,lbl,red)=>{const r=118;x.strokeStyle='#2b2f34';x.lineWidth=3;x.beginPath();x.arc(cx,140,r,0,Math.PI*2);x.stroke();
+    for(let v=0;v<=max;v+=step){const a=Math.PI*0.75+v/max*Math.PI*1.5;x.strokeStyle=(red&&v>=red)?'#e33':'#dde';x.lineWidth=v%(step*2)===0?4:2;
+      x.beginPath();x.moveTo(cx+Math.cos(a)*(r-6),140+Math.sin(a)*(r-6));x.lineTo(cx+Math.cos(a)*(r-20),140+Math.sin(a)*(r-20));x.stroke();
+      if(v%(step*2)===0){x.fillStyle='#dde';x.font='18px Arial';x.textAlign='center';x.fillText(lbl(v),cx+Math.cos(a)*(r-38),146+Math.sin(a)*(r-38));}}
+    const a=Math.PI*0.75+0.12*Math.PI*1.5;x.strokeStyle='#ff4a2a';x.lineWidth=4;x.beginPath();x.moveTo(cx,140);x.lineTo(cx+Math.cos(a)*(r-24),140+Math.sin(a)*(r-24));x.stroke();
+    x.fillStyle='#222';x.beginPath();x.arc(cx,140,12,0,7);x.fill();};
+  dial(140,8000,500,v=>v/1000,6500);dial(580,240,10,v=>v,0);
+  x.fillStyle='#0d1a24';x.fillRect(285,70,150,140);x.fillStyle='#7fd0ff';x.font='bold 22px Arial';x.textAlign='center';x.fillText('6.3 L/100',360,118);x.font='16px Arial';x.fillText('Menzil 712 km',360,148);x.fillText('+18 °C',360,176);
+});}
+function buttonsTex(){return canvasTex(360,256,(x,w,h)=>{x.fillStyle='#16181b';x.fillRect(0,0,w,h);x.fillStyle='#2b2e33';
+  for(let r=0;r<3;r++)for(let c=0;c<6;c++){x.fillRect(12+c*57,14+r*44,50,34);}x.fillStyle='#cfd4da';x.font='14px Arial';x.textAlign='center';
+  ['FM','AM','CD','AUX','TP','⏻','1','2','3','4','5','6','◀◀','▶▶','INFO','SET','BACK','▲'].forEach((t,i)=>x.fillText(t,37+(i%6)*57,36+Math.floor(i/6)*44));
+  x.fillStyle='#2b2e33';x.beginPath();x.arc(w/2,200,34,0,7);x.fill();x.fillStyle='#cfd4da';x.fillText('MENU',w/2,205);
+  x.fillStyle='#c22';x.fillRect(w/2-90,190,40,24);x.fillStyle='#fff';x.fillText('▲',w/2-70,207);});}
+function screenTex(plus){return canvasTex(512,256,(x,w,h)=>{
+  if(plus){const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#0f2235');g.addColorStop(1,'#07111b');x.fillStyle=g;x.fillRect(0,0,w,h);
+    const ic=[['Radyo','#3b82f6'],['Medya','#22c55e'],['Telefon','#eab308'],['CarPlay','#ef4444'],['Android Auto','#10b981'],['Ayarlar','#94a3b8']];
+    ic.forEach(([t,c],i)=>{const cx=70+(i%3)*186,cy=70+Math.floor(i/3)*110;x.fillStyle=c;x.beginPath();x.arc(cx,cy,30,0,7);x.fill();x.fillStyle='#dbe6f0';x.font='18px Arial';x.textAlign='center';x.fillText(t,cx,cy+56);});
+    x.fillStyle='#9fb3c8';x.font='16px Arial';x.textAlign='left';x.fillText('IntelliLink R4.0  ·  12:40  ·  18°C',14,246);}
+  else{x.fillStyle='#03070a';x.fillRect(0,0,w,h);x.fillStyle='#ffffff';x.font='bold 54px Arial';x.textAlign='center';x.fillText('FM 101.8',w/2,110);x.font='26px Arial';x.fillStyle='#9cc';x.fillText('Bluetooth  ·  USB  ·  CD 300',w/2,170);x.fillText('12:40   18°C',w/2,215);}
+});}
+// tame the bright studio environment
+const seenM=new Set();scene.traverse(o=>{if(o.isMesh&&!seenM.has(o.material)){seenM.add(o.material);const m=o.material;if('envMapIntensity' in m)m.envMapIntensity=(m===M.paint?0.7:m===M.glass?0.25:m===M.chrome||m===M.bodyChrome?1.0:0.35);}});
+floor.material.envMapIntensity=0.05;disk.material.envMapIntensity=0.12;
+let SCREEN=null;root.traverse(o=>{if(o.userData&&o.userData.screen)SCREEN=o.userData.screen;});
+const SCR_TEX={e:screenTex(false),p:screenTex(true)};
+
+/* ================= state, modes, animation ================= */
+const S={doors:0,trunk:0,hood:0,explode:0,xray:0,lights:false,pkg:'p',bodyHidden:0,roofHidden:0,spin:0};
+const T={...S};
+function setPkg(p){S.pkg=p;WHEELS.forEach(w=>{w.userData.alloy.visible=p==='p';w.userData.hubcap.visible=p!=='p';});
+  root.traverse(o=>{if(o.isMesh&&o.material===M.fog)o.visible=p==='p';});
+  if(SCREEN){SCREEN.material.map=SCR_TEX[p];SCREEN.material.needsUpdate=true;}}
+setPkg('p');
+
+const cams={
+  ext:{p:[5.3,2.0,4.4],t:[0,0.62,0]},
+  doors:{p:[2.2,2.0,5.0],t:[-0.3,0.8,0]},
+  int:{p:[-1.9,3.4,-1.5],t:[-0.3,0.55,0]},
+  drv:{p:[-0.45,1.17,-0.37],t:[0.3,0.95,-0.3]},
+  eng:{p:[3.6,2.3,1.9],t:[1.55,0.65,0]},
+  trk:{p:[-4.4,2.3,2.1],t:[-1.9,0.7,0]},
+  chs:{p:[4.2,1.6,4.6],t:[0,0.4,0]},
+  xr:{p:[4.8,2.4,4.6],t:[0,0.6,0]},
+  exp:{p:[6.4,3.4,6.2],t:[0,0.9,0]},
+};
+let camAnim=null;
+function flyTo(k,dur){const c=cams[k];camAnim={s0:performance.now(),t:0,d:dur||1.1,p0:camera.position.clone(),t0:controls.target.clone(),p1:new THREE.Vector3(...c.p),t1:new THREE.Vector3(...c.t)};
+  controls.minDistance=k==='drv'?0.05:0.6;controls.maxPolarAngle=k==='drv'?Math.PI*0.75:Math.PI*0.52;}
+
+const MODES=[
+  {k:'ext',n:'Dış',s:'Genel görünüm'},
+  {k:'doors',n:'Kapılar',s:'4 kapı açılır'},
+  {k:'int',n:'İç mekân',s:'Tavan kesik'},
+  {k:'drv',n:'Sürücü',s:'Koltuktan bakış'},
+  {k:'eng',n:'Motor',s:'1.6 Ecotec'},
+  {k:'trk',n:'Bagaj',s:'460 litre'},
+  {k:'chs',n:'Şasi',s:'Süspansiyon'},
+  {k:'xr',n:'Röntgen',s:'Saydam kasa'},
+  {k:'exp',n:'Parçala',s:'Patlatılmış'},
+];
+let mode='ext';
+function setMode(k){
+  mode=k;
+  T.doors=(k==='doors'||k==='int')?1:0;T.trunk=k==='trk'?1:0;T.hood=k==='eng'?1:0;T.xray=k==='xr'?1:0;T.explode=k==='exp'?0.75:0;
+  T.bodyHidden=k==='chs'?1:0;T.roofHidden=(k==='int')?1:0;
+  if(k==='drv'){T.doors=0;}
+  flyTo(k);renderRail();renderSub();hideCard();
+}
+function renderRail(){const r=$('#rail');r.innerHTML='';MODES.forEach(m=>{const b=document.createElement('button');b.className='chip'+(m.k===mode?' on':'');b.innerHTML='<b>'+m.n+'</b><small>'+m.s+'</small>';b.onclick=()=>setMode(m.k);r.appendChild(b);});}
+function tg(label,on,fn){const b=document.createElement('button');b.className='tg'+(on?' on':'');b.innerHTML='<i></i>'+label;b.onclick=fn;return b;}
+function renderSub(){
+  const s=$('#sub');s.innerHTML='';const box=document.createElement('div');box.className='toggles';
+  box.appendChild(tg('Kapılar',T.doors>0.5,()=>{T.doors=T.doors>0.5?0:1;renderSub();}));
+  box.appendChild(tg('Bagaj',T.trunk>0.5,()=>{T.trunk=T.trunk>0.5?0:1;renderSub();}));
+  box.appendChild(tg('Kaput',T.hood>0.5,()=>{T.hood=T.hood>0.5?0:1;renderSub();}));
+  box.appendChild(tg('Farlar',S.lights,()=>{S.lights=!S.lights;applyLights();renderSub();}));
+  box.appendChild(tg('Döndür',S.spin>0,()=>{S.spin=S.spin?0:1;controls.autoRotate=!!S.spin;controls.autoRotateSpeed=1.2;renderSub();}));
+  s.appendChild(box);
+  if(mode==='exp'){const sl=document.createElement('div');sl.className='slider';sl.innerHTML='<label for="ex">Parçalama</label><input id="ex" type="range" min="0" max="1" step="0.01" value="'+T.explode+'">';sl.querySelector('input').oninput=e=>{T.explode=+e.target.value;};s.appendChild(sl);}
+  if(mode==='xr'){const sl=document.createElement('div');sl.className='slider';sl.innerHTML='<label for="xr">Saydamlık</label><input id="xr" type="range" min="0" max="1" step="0.01" value="'+T.xray+'">';sl.querySelector('input').oninput=e=>{T.xray=+e.target.value;};s.appendChild(sl);}
+  if(mode==='ext'||mode==='doors'){const sw=document.createElement('div');sw.className='swatches';PAINTS.forEach(p=>{const b=document.createElement('button');b.className='sw'+(M.paint.color.getHex()===p.c?' on':'');b.style.background='#'+p.c.toString(16).padStart(6,'0');b.title=p.n;b.setAttribute('aria-label',p.n);b.onclick=()=>{M.paint.color.setHex(p.c);renderSub();toast('Renk',p.n,'Opel Astra J renk kartelasından.');};sw.appendChild(b);});s.appendChild(sw);}
+}
+const headSpots=[];
+[-1,1].forEach(s=>{const l=new THREE.SpotLight(0xfff4e0,0,14,0.5,0.6,1.5);l.position.set(2.2,0.7,s*0.62);l.target.position.set(8,0,s*0.9);scene.add(l,l.target);headSpots.push(l);});
+function applyLights(){const on=S.lights;M.headlamp.emissive.setHex(on?0xfff1d6:0);M.headlamp.emissiveIntensity=on?1.2:0;M.drl.emissive.setHex(on?0xcfe0ff:0x000000);M.drl.emissiveIntensity=on?3:0;
+  M.tail.emissive.setHex(on?0xff1010:0);M.tail.emissiveIntensity=on?1.4:0;headSpots.forEach(l=>l.intensity=on?3:0);}
+
+/* ================= info sheet ================= */
+const SPEC={
+  ozet:()=>`<div class="kpis"><div class="kpi"><b>115</b><small>PS @ 6000 d/d</small></div><div class="kpi"><b>155</b><small>Nm @ 4000 d/d</small></div><div class="kpi"><b>11,9</b><small>sn 0–100 km/s</small></div>
+    <div class="kpi"><b>193</b><small>km/s azami</small></div><div class="kpi"><b>6,3</b><small>L/100 km karma</small></div><div class="kpi"><b>460</b><small>L bagaj</small></div></div>
+    <dl class="specs"><dt>Kasa</dt><dd>4 kapı sedan · 5 kişilik</dd><dt>Nesil</dt><dd>Astra J (makyajlı, 2012–2018 sedan)</dd><dt>Model yılı</dt><dd>2017</dd><dt>Üretim</dt><dd>Gliwice, Polonya</dd><dt>Motor kodu</dt><dd>A16XER</dd><dt>Şanzıman</dt><dd>5 ileri manuel (F17)</dd><dt>Çekiş</dt><dd>Önden çekiş</dd><dt>Yakıt</dt><dd>Benzin · 95 oktan</dd></dl>
+    <p class="note">105 HP olarak hatırladığın sürüm büyük ihtimalle aynı gövdedeki 1.6 CDTI 110 PS dizel veya eski 1.4 100 PS benzinli. 2017 sedan benzinli manuelde 1.6 Ecotec motor 115 PS gücündeydi. Bu yüzden model bu motora göre hazırlandı.</p>`,
+  motor:()=>`<dl class="specs"><dt>Tip</dt><dd>Sıralı 4 silindir, enine</dd><dt>Valf düzeni</dt><dd>DOHC 16V, triger kayışı</dd><dt>Teknoloji</dt><dd>Twinport · çift VVT</dd><dt>Hacim</dt><dd>1598 cc</dd><dt>Çap × strok</dt><dd>79,0 × 81,5 mm</dd><dt>Sıkıştırma</dt><dd>10,8 : 1</dd>
+    <dt>Güç</dt><dd>115 PS (85 kW) @ 6000</dd><dt>Tork</dt><dd>155 Nm @ 4000</dd><dt>Yakıt sistemi</dt><dd>Çok noktalı enjeksiyon</dd><dt>Emisyon</dt><dd>Euro 5 · ≈147 g/km CO₂</dd><dt>Yağ</dt><dd>5W-30 dexos2 · ≈4,5 L</dd><dt>Şanzıman</dt><dd>F17 · 5 ileri + geri</dd>
+    <dt>Oranlar</dt><dd>3.73 / 2.14 / 1.41 / 1.12 / 0.89</dd><dt>Debriyaj</dt><dd>Hidrolik, tek disk</dd></dl>`,
+  olcu:()=>`<dl class="specs"><dt>Uzunluk</dt><dd>4658 mm</dd><dt>Genişlik</dt><dd>1814 mm</dd><dt>Yükseklik</dt><dd>1500 mm</dd><dt>Dingil mesafesi</dt><dd>2685 mm</dd><dt>İz genişliği ön/arka</dt><dd>1544 / 1558 mm</dd><dt>Boş ağırlık</dt><dd>≈ 1390 kg</dd><dt>Bagaj</dt><dd>460 L (1010 L katlı)</dd><dt>Yakıt deposu</dt><dd>56 L</dd><dt>Lastik</dt><dd>205/60 R16</dd><dt>Dönüş çapı</dt><dd>≈ 11,0 m</dd></dl>`,
+  sasi:()=>`<dl class="specs"><dt>Ön süspansiyon</dt><dd>MacPherson, helezon yay</dd><dt>Arka süspansiyon</dt><dd>Torsiyon kirişi + Watt bağlantısı</dd><dt>Direksiyon</dt><dd>Kremayer, elektro-hidrolik</dd><dt>Ön fren</dt><dd>Havalı disk</dd><dt>Arka fren</dt><dd>Disk</dd><dt>Sürüş destek</dt><dd>ABS · EBD · ESP · TC · HSA</dd><dt>Hava yastığı</dt><dd>6 adet (ön, yan, perde)</dd></dl>`,
+  donanim:()=>{const R=(n,e,p)=>`<li><span>${n}</span><span><span class="${e?'y':'n'}">${e===true?'●':e===false?'—':e}</span> / <span class="${p?'y':'n'}">${p===true?'●':p===false?'—':p}</span></span></li>`;
+    return `<div class="pkg"><button class="tab ${S.pkg==='e'?'on':''}" data-pkg="e">Edition modelde göster</button><button class="tab ${S.pkg==='p'?'on':''}" data-pkg="p">Edition Plus modelde göster</button></div>
+    <div class="sect">Edition / Edition Plus</div><ul class="eq">
+    ${R('ABS, ESP, TC, yokuş kalkış desteği',true,true)}${R('6 hava yastığı',true,true)}${R('ISOFIX',true,true)}${R('Hız sabitleyici + limitleyici',true,true)}
+    ${R('Klima','manuel','otomatik')}${R('Elektrikli ön / arka camlar',true,true)}${R('Elektrikli, ısıtmalı aynalar',true,true)}${R('Yol bilgisayarı',true,true)}
+    ${R('Ses sistemi','CD 300','IntelliLink 7"')}${R('Bluetooth, USB, AUX',true,true)}${R('Direksiyondan ses kontrolü',true,true)}${R('Apple CarPlay / Android Auto',false,true)}
+    ${R('Deri direksiyon & vites topuzu',false,true)}${R('Jant','16" çelik+kapak','16" alaşım')}${R('Ön sis farları',false,true)}${R('Arka park sensörü',false,true)}
+    ${R('Yükseklik ayarlı sürücü koltuğu',true,true)}${R('60/40 katlanır arka koltuk',true,true)}${R('Uzaktan kumandalı merkezi kilit',true,true)}</ul>
+    <p class="note">Paket içerikleri 2017 Türkiye fiyat listelerine göre hazırlanmış tipik içeriklerdir. Üretim dönemine ve bayi opsiyonlarına göre farklılık olabilir. Butonlarla jant, sis farı ve multimedya ekranı 3D modelde değişir.</p>`;}
+};
+const TABS=[['ozet','Özet'],['motor','Motor & şanzıman'],['olcu','Ölçüler'],['sasi','Şasi & güvenlik'],['donanim','Donanım']];
+let tab='ozet';
+function renderSheet(){const t=$('#tabs');t.innerHTML='';TABS.forEach(([k,n])=>{const b=document.createElement('button');b.className='tab'+(k===tab?' on':'');b.textContent=n;b.onclick=()=>{tab=k;renderSheet();};t.appendChild(b);});
+  const body=$('#sheetBody');body.innerHTML=SPEC[tab]();body.querySelectorAll('[data-pkg]').forEach(b=>b.onclick=()=>{setPkg(b.dataset.pkg);renderSheet();$('.lead').textContent='2017 model · 1.6 Ecotec 115 PS · 5 ileri manuel · '+(S.pkg==='p'?'Edition Plus':'Edition');});}
+$('#btnInfo').onclick=()=>{renderSheet();$('#sheet').classList.add('show');$('#sheet').setAttribute('aria-hidden','false');};
+$('#sheetX').onclick=()=>{$('#sheet').classList.remove('show');$('#sheet').setAttribute('aria-hidden','true');};
+
+/* ================= picking ================= */
+let downXY=null;
+renderer.domElement.addEventListener('pointerdown',e=>{downXY=[e.clientX,e.clientY,performance.now()];});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!downXY)return;const dx=e.clientX-downXY[0],dy=e.clientY-downXY[1];if(dx*dx+dy*dy>64||performance.now()-downXY[2]>450)return;
+  const r=renderer.domElement.getBoundingClientRect(),v=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  const rc=new THREE.Raycaster();rc.setFromCamera(v,camera);
+  const hits=rc.intersectObject(root,true).filter(h=>h.object.visible&&isVisible(h.object)&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.3));
+  if(!hits.length){hideCard();return;}
+  let o=hits[0].object;while(o&&!(o.userData&&o.userData.part))o=o.parent;
+  if(o){const p=o.userData.part;toast(p.cat,p.name,p.desc);flash(o);}
+});
+function isVisible(o){while(o){if(!o.visible)return false;o=o.parent;}return true;}
+let cardTimer=null;
+function toast(c,n,d){$('#cCat').textContent=c;$('#cName').textContent=n;$('#cDesc').textContent=d;$('#card').classList.add('show');$('#hint').style.opacity=0;}
+function hideCard(){$('#card').classList.remove('show');}
+$('#cardX').onclick=hideCard;
+let flashObj=null,flashT=0;const flashMats=new Map();
+function flash(o){unflash();flashObj=o;flashT=1.2;o.traverse(m=>{if(m.isMesh&&!flashMats.has(m)){flashMats.set(m,m.material);const c=m.material.clone();if(c.emissive){c.emissive=new THREE.Color(0xf2c230);c.emissiveIntensity=0.35;}m.material=c;}});}
+function unflash(){flashMats.forEach((mat,m)=>{m.material.dispose();m.material=mat;});flashMats.clear();flashObj=null;}
+
+/* ================= loop ================= */
+const clock=new THREE.Clock();let REAL_DT=0.016;
+const tmp=new THREE.Vector3();
+function damp(cur,tgt,k,dt){dt=REAL_DT;return lerp(cur,tgt,1-Math.exp(-k*dt));}
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+function tick(){
+  const rd=clock.getDelta();REAL_DT=Math.min(rd,0.25);const dt=Math.min(rd,0.05);
+  ['doors','trunk','hood','explode','xray','bodyHidden','roofHidden'].forEach(k=>{S[k]=damp(S[k],T[k],k==='explode'?3.5:4.5,dt);});
+  // doors
+  for(const k in DOORS){const d=DOORS[k],a=(k[5]==='f'?1.15:1.05)*ease(clamp(S.doors,0,1));d.rotation.y=d.userData.sgn*a;}
+  trunk.rotation.z=-1.2*ease(clamp(S.trunk,0,1));
+  hood.rotation.z=1.05*ease(clamp(S.hood,0,1));
+  // explode
+  const f=S.explode;
+  for(const p of parts){p.obj.position.copy(p.base).addScaledVector(p.ex,f*1.6);}
+  // x-ray / hide
+  const op=1-S.xray*0.9;M.glass.userData.baseOpacity=damp(M.glass.userData.baseOpacity,(mode==='int'||mode==='drv'||mode==='doors')?0.35:0.86,4,dt);
+  BODY_MATS.forEach(m=>{const base=m.userData.baseOpacity;const tr=m.userData.baseTransparent||op<0.985;if(m.transparent!==tr){m.transparent=tr;m.needsUpdate=true;}m.opacity=Math.min(base,op);m.depthWrite=!tr;});
+  M.headliner.visible=op>0.95;M.doorCard.visible=op>0.9;M.liner.visible=op>0.9;
+  const bodyVis=S.bodyHidden<0.5;
+  [shell,greenhouse,hood,trunk,...Object.values(DOORS)].forEach(o=>o.visible=bodyVis);
+  greenhouse.visible=bodyVis&&S.roofHidden<0.5;
+  parts.forEach(p=>{if(p.cat===CAT.int||p.cat===CAT.trk){p.obj.visible=S.bodyHidden<0.5;}});
+  // wheel spin when chassis/xray idle
+  WHEELS.forEach(w=>{w.userData.spin.rotation.z-=dt*(mode==='chs'?2.5:0);});
+  if(camAnim){camAnim.t=(performance.now()-camAnim.s0)/1000/camAnim.d;const e=ease(clamp(camAnim.t,0,1));camera.position.lerpVectors(camAnim.p0,camAnim.p1,e);controls.target.lerpVectors(camAnim.t0,camAnim.t1,e);if(camAnim.t>=1)camAnim=null;}
+  cabinLight.intensity=damp(cabinLight.intensity,(mode==='drv'||mode==='int')?1.4:0.25,3,dt);
+  if(flashObj){flashT-=dt;if(flashT<=0)unflash();}
+  controls.update();renderer.render(scene,camera);requestAnimationFrame(tick);
+}
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.fov=w<h?52:38;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);resize();
+renderRail();renderSub();
+// portrait phones: pull camera back a bit
+if(stage.clientWidth<stage.clientHeight){Object.entries(cams).forEach(([k,c])=>{if(k==='drv')return;const F={ext:1.2,eng:1.35,int:1.6}[k]||1.5;const p=new THREE.Vector3(...c.p),t=new THREE.Vector3(...c.t);p.sub(t).multiplyScalar(F).add(t);c.p=p.toArray();});camera.position.set(...cams.ext.p);}
+tick();
+setTimeout(()=>{$('#loader').style.opacity=0;setTimeout(()=>$('#loader').remove(),500);},150);
+setTimeout(()=>{$('#hint').style.opacity=0;},7000);
+window.__astra={setMode,S,T,camera,controls,M};
+})();
+</script>
+</body>
+</html>
