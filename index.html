@@ -155,6 +155,7 @@ ul.eq li span:last-child{font-family:var(--mono);font-size:.74rem;white-space:no
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/meshopt_decoder.js"></script>
 <script src="engine.js"></script>
+<script src="interior.js"></script>
 <script>
 (function(){
 "use strict";
@@ -285,7 +286,7 @@ async function fetchBuf(url,label){ // .glb when available, otherwise a base64 t
 function load(url,label){return fetchBuf(url,label).then(buf=>new Promise((res,rej)=>loader.parse(buf,'',res,rej)));}
 load('astra.glb','Araç modeli yükleniyor').then(car=>{buildCar(car.scene);
   try{buildBay();}catch(e){console.error(e);}
-  return load('dash.glb','İç konsol taraması yükleniyor').then(d=>buildDash(d.scene)).catch(e=>console.warn(e));
+  try{buildInterior();}catch(e){console.error(e);}
 }).then(()=>{finish();}).catch(err=>{console.error(err);$('#loadmsg').innerHTML='<span class="err">Model yüklenemedi ('+(err&&err.message||err)+'). Sayfayı yenile.</span>';});
 
 function splitTriangles(m,pred){ // move triangles of mesh m that satisfy pred(component) into a new mesh
@@ -378,7 +379,8 @@ function buildCar(model){
     const old=splitTriangles(o,(box,n)=>{const c=box.getCenter(new THREE.Vector3());const dash=c.x>0.30&&box.min.x>0.1&&box.max.y>0.75&&box.min.y>0.25&&Math.abs(c.z)<0.8;const stick=c.x>0.4&&c.x<0.6&&box.max.y<0.75&&box.min.y>0.5&&Math.abs(c.z)<0.1;return dash||stick;});
     if(old){window.__dashOld=old;old.updateMatrixWorld(true);DASH_BOX=new THREE.Box3().setFromObject(old);old.visible=false;old.userData.hidden=true;}}});
   window.__find=find;
-  buildInteriorAdds(find);
+  // the game model's simple cabin is replaced by the procedural interior (interior.js)
+  model.traverse(o=>{if(o.isMesh&&o.parent&&/^(stwheel_1|Gum_49)/.test(o.parent.name)){o.visible=false;o.userData.hidden=true;}});
   buildChassis();
 }
 
@@ -494,7 +496,7 @@ const cams={
   ext:{p:[5.3,1.9,4.4],t:[0,0.6,0]},
   doors:{p:[2.4,1.9,5.0],t:[-0.3,0.75,0]},
   int:{p:[-1.6,3.3,-1.4],t:[-0.2,0.55,0]},
-  drv:{p:[-0.02,1.14,-0.36],t:[0.7,0.93,-0.30]},
+  drv:{p:[-0.10,1.22,-0.37],t:[0.64,1.0,-0.37]},
   eng:{p:[3.3,2.15,1.15],t:[1.6,0.6,0.05]},
   trk:{p:[-4.4,2.3,2.1],t:[-1.9,0.7,0]},
   chs:{p:[4.2,1.6,4.6],t:[0,0.4,0]},
@@ -521,7 +523,7 @@ function renderRail(){const r=$('#rail');r.innerHTML='';MODES.forEach(m=>{const 
 function tg(label,on,fn){const b=document.createElement('button');b.className='tg'+(on?' on':'');b.innerHTML='<i></i>'+label;b.onclick=fn;return b;}
 function renderSub(){
   const s=$('#sub');s.innerHTML='';
-  if(mode==='lab'||mode==='eng'){renderLabSub(s);return;}const box=document.createElement('div');box.className='toggles';
+  if(mode==='lab'||mode==='eng'||mode==='int'||mode==='drv'){renderLabSub(s);return;}const box=document.createElement('div');box.className='toggles';
   box.appendChild(tg('Kapılar',T.doors>0.5,()=>{T.doors=T.doors>0.5?0:1;renderSub();}));
   box.appendChild(tg('Bagaj',T.trunk>0.5,()=>{T.trunk=T.trunk>0.5?0:1;renderSub();}));
   box.appendChild(tg('Kaput',T.hood>0.5,()=>{T.hood=T.hood>0.5?0:1;renderSub();}));
@@ -560,10 +562,10 @@ const SPEC={
   kaynak:()=>`<div class="sect">3D model kaynakları</div><ul class="eq">
     <li><span>Araç modeli: “Opel Astra J Sedan”, koelkastasbers</span><span>Sketchfab · Free Standard</span></li>
     <li><span>Motor: 1.6 Ecotec A16XER, bu sayfa için parça parça sıfırdan modellendi (≈ 70 parça)</span><span>Kendi modelimiz</span></li>
-    <li><span>Ön konsol: “Opel Astra 1.4T 2013 Dashboard (interior)”, hakane</span><span>Sketchfab · CC BY 4.0</span></li></ul>
+    <li><span>İç mekân: torpido, gösterge paneli, direksiyon, radyo, klima, koltuklar, kapı döşemeleri… parça parça sıfırdan modellendi; kumandalar çalışır</span><span>Kendi modelimiz</span></li></ul>
     <p class="note">Araç modeli: <a style="color:inherit" href="https://sketchfab.com/3d-models/opel-astra-j-sedan-0c7a50857f8b4302b290a0654f8b2bc7" target="_blank" rel="noopener">sketchfab.com/3d-models/opel-astra-j-sedan-0c7a50857f8b4302b290a0654f8b2bc7</a>. Yükleyene göre bir GTA San Andreas modundan uyarlanmıştır.<br>
     Motor: gerçek ölçüler (çap 79 mm, strok 81,5 mm, silindir aralığı 86 mm) ve kullanıcının gönderdiği motor bölümü fotoğraflarına göre yerleşim. Tarama kullanılmadı; turbosuz (atmosferik) motor.<br>
-    İç konsol taraması: sketchfab.com/3d-models/…-7a80120b242f42279666d9d74213cfce (CC BY 4.0; temizlendi, ölçeklendi ve araca yerleştirildi). Parça konumları Wikimedia Commons’taki Astra J iç mekân ve motor fotoğraflarıyla karşılaştırıldı.<br>
+    İç mekân: tarama kullanılmadı; kabin ölçüleri araç gövdesinden ölçüldü, yerleşim Astra J iç mekân fotoğraflarına göre.<br>
     Kaputun ayrılması, kapı/bagaj menteşeleri, numaralı parça işaretleri, vites kolu, pedallar, şasi şeması, bilgi kartları ve arayüz bu sayfa için eklendi.</p>`
 };
 const TABS=[['ozet','Özet'],['motor','Motor & şanzıman'],['olcu','Ölçüler'],['sasi','Şasi & güvenlik'],['donanim','Donanım'],['kaynak','3D model']];
@@ -592,6 +594,7 @@ const HS=[
  {g:'int',p:[0.45,1.27,0.0],r:0.14,n:'İç dikiz aynası & tavan konsolu',d:'Ön cam üst ortasındaki iç dikiz aynası (gece konumlu) ve tavan konsolundaki okuma lambaları. İki yanda aynalı güneşlikler.'},
  // engine bay (positions measured on the real Astra J engine-bay scan)
 ];
+HS.length=0; // numbered markers replaced by real, clickable interior parts
 HS.forEach((h,i)=>{h.i=HS.filter(x=>x.g===h.g).indexOf(h)+1;h.v=new THREE.Vector3(...h.p);});
 const hsGroup=new THREE.Group();carRoot.add(hsGroup);
 function hsTex(n){return canvasTex(96,96,(x,w,h)=>{x.fillStyle='rgba(13,16,20,.55)';x.beginPath();x.arc(48,48,44,0,7);x.fill();x.fillStyle='#f2c230';x.beginPath();x.arc(48,48,34,0,7);x.fill();x.fillStyle='#1a1503';x.font='bold 40px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(String(n),48,51);});}
@@ -650,7 +653,9 @@ function finishParts(){ENG.parts.forEach((p,i)=>{p.i=i+1;p.obj.traverse(m=>{if(m
 function placeEngine(){if(!ENG)return;const tgt=mode==='lab'?engRoot:carEng;if(ENG.root.parent!==tgt)tgt.add(ENG.root);}
 buildLab();finishParts();
 const partShown=q=>!(q.car&&mode==='lab');
-function partsForUI(){return ENG.parts.filter(q=>partShown(q)&&(!LABG||q.grp===LABG));}
+const isInt=()=>mode==='int'||mode==='drv';
+function PS(){return isInt()?(INT?INT.parts:[]):(ENG?ENG.parts:[]);}
+function partsForUI(){return PS().filter(q=>partShown(q)&&(!LABG||q.grp===LABG));}
 
 /* ---------- engine-bay items around the engine (car coordinates) ---------- */
 function buildBay(){
@@ -726,7 +731,7 @@ function buildBay(){
 
 /* ---------- part focus / isolation (works in the car and on the stand) ---------- */
 function labPartHTML(p){return '<span class="k">Ne işe yarar</span>'+p.d+'<span class="k">Neye bağlı</span>'+p.c+'<span class="k">Teknik bilgi</span>'+p.t;}
-function applyLook(){if(!ENG)return;ENG.parts.forEach(q=>q.obj.traverse(m=>{if(!m.isMesh)return;const sel=LABF&&LABF.p===q;m.material=(!LABF||sel)?m.userData.orig:ghostMat;m.visible=partShown(q)&&(!LABF||!LABF.iso||sel);}));}
+function applyLook(){[ENG?ENG.parts:[],INT?INT.parts:[]].forEach(set=>set.forEach(q=>q.obj.traverse(m=>{if(!m.isMesh)return;const sel=LABF&&LABF.p===q;m.material=(!LABF||sel)?m.userData.orig:ghostMat;m.visible=partShown(q)&&(!LABF||!LABF.iso||sel);})));}
 function labFocus(p){LABF={p,iso:false};applyLook();labFly(p,3.4);labCard();renderSub();}
 function labFly(p,k){const cur=p.obj.position.clone();p.obj.position.copy(p.base).addScaledVector(p.ex,mode==='lab'?T.labEx:0);p.obj.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(p.obj);p.obj.position.copy(cur);p.obj.updateMatrixWorld(true);const c=b.getCenter(new THREE.Vector3()),r=b.getSize(new THREE.Vector3()).length()/2;
   const dir=camera.position.clone().sub(controls.target);if(dir.lengthSq()<1e-6)dir.set(1,0.7,1);dir.normalize();if(mode==='eng'&&dir.y<0.35){dir.y=0.35;dir.normalize();}
@@ -740,17 +745,127 @@ function labCard(){const p=LABF.p;const list=partsForUI();const k=Math.max(0,lis
   const a=$('#cActs');a.innerHTML='';const B=(t,f,c)=>{const b=document.createElement('button');if(c)b.className=c;b.textContent=t;b.onclick=f;a.appendChild(b);};
   B(LABF.iso?'Hepsini göster':'Ayrı incele',labIso,'pri');B('‹ Önceki',()=>labFocus(list[(k-1+list.length)%list.length]));B('Sonraki ›',()=>labFocus(list[(k+1)%list.length]));B('Geri',()=>labUnfocus());}
 function renderLabSub(s){
-  if(!ENG){s.innerHTML='<div class="tg">Motor modeli yüklenemedi</div>';return;}
+  if(!PS().length){s.innerHTML='<div class="tg">Model yükleniyor…</div>';return;}
   if(mode==='lab'){const sl=document.createElement('div');sl.className='slider';sl.innerHTML='<label for="lex">Parçala</label><input id="lex" type="range" min="0" max="1" step="0.01" value="'+T.labEx+'">';
     sl.querySelector('input').oninput=e=>{T.labEx=+e.target.value;};s.appendChild(sl);}
-  else{const box=document.createElement('div');box.className='toggles';box.appendChild(tg('Kaput',T.hood>0.5,()=>{T.hood=T.hood>0.5?0:1;renderSub();}));s.appendChild(box);}
-  const groups=[...new Set(ENG.parts.filter(partShown).map(q=>q.grp))];
+  else if(mode==='eng'){const box=document.createElement('div');box.className='toggles';box.appendChild(tg('Kaput',T.hood>0.5,()=>{T.hood=T.hood>0.5?0:1;renderSub();}));s.appendChild(box);}
+  else{const box=document.createElement('div');box.className='toggles';box.appendChild(tg('Kontak',SIM.ign>0,()=>{ctlAction(INT.ctls.find(c=>c.id==='ign'));renderSub();}));box.appendChild(tg('Kapılar',T.doors>0.5,()=>{T.doors=T.doors>0.5?0:1;renderSub();}));box.appendChild(tg('Farlar',S.lights,()=>{S.lights=!S.lights;SIM.lights=S.lights?2:0;applyLights();renderSub();}));s.appendChild(box);}
+  const groups=[...new Set(PS().filter(partShown).map(q=>q.grp))];
   const gr=document.createElement('div');gr.className='hsrail';
   [null,...groups].forEach(g=>{const b=document.createElement('button');b.className='tg'+(LABG===g?' on':'');b.innerHTML='<i></i>'+(g||'Tümü');b.onclick=()=>{LABG=g;renderSub();};gr.appendChild(b);});
   s.appendChild(gr);
   const rail=document.createElement('div');rail.className='hsrail';
   partsForUI().forEach((p,i)=>{const b=document.createElement('button');b.className='hs'+(LABF&&LABF.p===p?' on':'');b.innerHTML='<b>'+(i+1)+'</b>'+p.n;b.onclick=()=>labFocus(p);rail.appendChild(b);});
   s.appendChild(rail);
+}
+
+/* ================= INTERIOR: procedural cabin with working controls ================= */
+let INT=null;const DOORGLASS={};
+const SIM={ign:0,running:false,rpm:0,rpmT:0,speed:0,gear:'N',hb:true,hazard:false,signal:0,blinkOn:false,blinkT:0,lights:0,cruise:false,msg:'',msgT:0,temp:0.0,fuel:0.62,
+  radio:{on:true,src:'FM',freq:101.8,preset:0,vol:12,name:'Radyo',info:'',infoT:0},ac:false,recirc:false,rdef:false,tempK:5,fan:0,dist:0,
+  glove:0,arm:0,visorL:0,visorR:0,rear60:0,rear40:0,roofl:false,pedal:{clutch:0,brake:0,gas:0},win:{}};
+const GEARS=['N','1','2','3','4','5','R'],GPOS={N:[0,0],1:[-1,1],2:[-1,-1],3:[0,1],4:[0,-1],5:[1,1],R:[-2,1]};
+const PRESETS=[101.8,94.9,99.5,104.2,88.6,97.2],PNAME=['Radyo','Haber','Pop','Rock','Klasik','Spor'];
+function buildInterior(){
+  if(!window.AstraInterior)return;
+  INT=AstraInterior.build(THREE,{clip:[cutPlane]});carRoot.add(INT.root);
+  INT.doorTrims.forEach(t=>{const pv=DOORS[t.door];if(pv){pv.updateMatrixWorld(true);pv.attach(t.obj);}else carRoot.add(t.obj);});
+  INT.parts.forEach(p=>{p.base=p.obj.position.clone();p.obj.traverse(m=>{if(m.isMesh)m.userData.orig=m.material;});});
+  // door glass panes for the window switches
+  Object.entries(DOORS).forEach(([k,pv])=>{pv.traverse(o=>{if(o.isMesh&&o.material&&/glass|KAPI_3\.3|KAPI 3\.3/i.test(o.material.name)&&!DOORGLASS[k]){o.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(o.parent.matrixWorld).invert();
+    const a=new THREE.Vector3(0,0,0).applyMatrix4(inv),b=new THREE.Vector3(0,-0.36,0).applyMatrix4(inv);DOORGLASS[k]={m:o,base:o.position.clone(),d:b.sub(a),t:0,v:0};}});});
+  INT.drawCluster(SIM);INT.drawRadio(SIM);
+}
+let audioCtx=null;
+function horn(){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const t=audioCtx.currentTime,g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();f.type='lowpass';f.frequency.value=1800;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.18,t+0.02);g.gain.setValueAtTime(0.18,t+0.5);g.gain.linearRampToValueAtTime(0,t+0.6);g.connect(f);f.connect(audioCtx.destination);
+  [415,520].forEach(fr=>{const o=audioCtx.createOscillator();o.type='square';o.frequency.value=fr;o.connect(g);o.start(t);o.stop(t+0.62);});}catch(e){}}
+function say(m){SIM.msg=m;SIM.msgT=3;}
+function rinfo(m){SIM.radio.info=m;SIM.radio.infoT=1.6;}
+function press(c){c.pressT=0.18;}
+function ctlAction(c){
+  const R=SIM.radio,id=c.id;let state='';
+  if(c.kind==='button'||c.kind==='key'||c.kind==='pedal')press(c);
+  switch(true){
+    case id==='horn':horn();state='Korna çaldı.';break;
+    case id==='hazard':SIM.hazard=!SIM.hazard;state=SIM.hazard?'Dörtlü flaşör AÇIK':'Dörtlü flaşör kapalı';break;
+    case id==='ign':
+      if(SIM.ign===0){SIM.ign=1;SIM.sweep=1.6;state='Kontak açık: göstergeler açılış turunu atıyor.';}
+      else if(SIM.ign===1){if(SIM.gear!=='N'&&SIM.pedal.clutch<0.5){state='Marş için vitesi boşa al ya da debriyaja bas.';break;}SIM.running=true;SIM.ign=2;SIM.rpmT=820;SIM.crank=0.7;state='Motor çalıştı: rölanti ≈ 820 d/d.';}
+      else{SIM.ign=0;SIM.running=false;SIM.rpmT=0;state='Kontak kapatıldı.';}break;
+    case id==='gear':{const i=(GEARS.indexOf(SIM.gear)+1)%GEARS.length;SIM.gear=GEARS[i];state='Vites: '+(SIM.gear==='N'?'boş':SIM.gear==='R'?'geri':SIM.gear+'. vites');break;}
+    case id==='hb':SIM.hb=!SIM.hb;state=SIM.hb?'El freni çekildi.':'El freni indirildi.';break;
+    case id==='glove':SIM.glove=SIM.glove?0:1;state=SIM.glove?'Torpido gözü açıldı.':'Torpido gözü kapandı.';break;
+    case id==='arm':SIM.arm=SIM.arm?0:1;state=SIM.arm?'Kolçak kapağı açıldı.':'Kolçak kapandı.';break;
+    case id==='visorL'||id==='visorR':SIM[id]=SIM[id]?0:1;state=SIM[id]?'Güneşlik indirildi.':'Güneşlik kaldırıldı.';break;
+    case id==='rear60'||id==='rear40':SIM[id]=SIM[id]?0:1;state=SIM[id]?'Sırt katlandı.':'Sırt kaldırıldı.';break;
+    case id==='roofl':SIM.roofl=!SIM.roofl;state=SIM.roofl?'Okuma lambaları açık.':'Okuma lambaları kapalı.';break;
+    case id==='lightsw':SIM.lights=(SIM.lights+1)%4;S.lights=SIM.lights>=2;applyLights();state=['Farlar kapalı','Park lambaları','Kısa far açık','Otomatik far (AUTO)'][SIM.lights];break;
+    case id==='st_left':SIM.signal=SIM.signal===0?-1:SIM.signal===-1?1:0;state=SIM.signal<0?'Sol sinyal':SIM.signal>0?'Sağ sinyal':'Sinyal kapalı';break;
+    case id==='st_right':say('Menzil 712 km');state='Yol bilgisayarı: menzil 712 km (silecek kolu ucu).';break;
+    case id==='p_clutch'||id==='p_brake'||id==='p_gas':{const k=id.slice(2);SIM.pedal[k]=1;if(k==='gas'&&SIM.running){SIM.rpmT=3200;state='Gaz: devir yükseliyor.';}else if(k==='brake')state='Fren: stop lambaları yandı.';else state=k==='clutch'?'Debriyaja basıldı.':'Kontak kapalı: motor tepki vermiyor.';break;}
+    case id.startsWith('w_'):{const d=c.door;const gl=DOORGLASS[d];if(gl){gl.t=gl.t?0:1;state=gl.t?'Cam iniyor.':'Cam kalkıyor.';}break;}
+    case id==='sw_cc':SIM.cruise=!SIM.cruise;say(SIM.cruise?'Hız sabitleyici hazır':'Hız sabitleyici kapalı');state=SIM.msg;break;
+    case id==='sw_set'||id==='sw_res':say(SIM.speed<30?'Hız sabitleyici 30 km/s üstünde çalışır':'Hız kaydedildi');state=SIM.msg;break;
+    case id==='sw_lim':say('Hız sınırlayıcı: 90 km/s');state=SIM.msg;break;
+    case id==='sw_volup'||id==='vol_up':R.vol=Math.min(40,R.vol+2);rinfo('Ses '+R.vol);state='Ses '+R.vol;break;
+    case id==='sw_voldn':R.vol=Math.max(0,R.vol-2);rinfo('Ses '+R.vol);state='Ses '+R.vol;break;
+    case id==='sw_src'||id==='r_CD/AUX':{const L=['FM','CD','AUX'];R.src=L[(L.indexOf(R.src)+1)%L.length];state='Kaynak: '+R.src;break;}
+    case id==='vol':R.on=!R.on;state=R.on?'Radyo açıldı.':'Radyo kapatıldı.';break;
+    case id==='menu':rinfo('Ayarlar ▸ Ses');state='Menü açıldı.';break;
+    case id==='r_FM/AM':R.src=R.src==='FM'?'AM':'FM';R.freq=R.src==='FM'?101.8:1026;R.preset=0;R.name=R.src==='FM'?'Radyo':'AM';state='Bant: '+R.src;break;
+    case /^r_[1-6]$/.test(id):{const n=+id.slice(2);R.src='FM';R.preset=n;R.freq=PRESETS[n-1];R.name=PNAME[n-1];state='Hafıza '+n+': '+R.freq.toFixed(1)+' MHz';break;}
+    case id==='r_▶▶'||id==='r_◀◀':{if(R.src==='FM'){R.freq=Math.round((R.freq+(id==='r_▶▶'?0.4:-0.4))*10)/10;if(R.freq>108)R.freq=87.6;if(R.freq<87.5)R.freq=108;R.preset=0;R.name='Arama…';}state=id==='r_▶▶'?'Sonraki istasyon':'Önceki istasyon';break;}
+    case id==='r_INFO':rinfo(R.src==='FM'?(R.name+' · RDS'):'Parça bilgisi');state='Bilgi gösteriliyor.';break;
+    case id==='r_BACK':R.info='';state='Geri.';break;
+    case id==='r_TP':rinfo('Trafik anonsu: AÇIK');state='TP açık.';break;
+    case id==='r_FAV':rinfo('Favoriler 1');state='Favori listesi.';break;
+    case id==='r_TONE':rinfo('Bas 0 · Tiz +1');state='Ton ayarı.';break;
+    case id==='ac':SIM.ac=!SIM.ac;state=SIM.ac?'Klima AÇIK (kompresör devrede).':'Klima kapalı.';break;
+    case id==='recirc':SIM.recirc=!SIM.recirc;state=SIM.recirc?'İç hava sirkülasyonu açık.':'Dış hava alınıyor.';break;
+    case id==='rdef':SIM.rdef=!SIM.rdef;state=SIM.rdef?'Arka cam rezistansı açık.':'Arka cam rezistansı kapalı.';break;
+    case id==='k_temp':SIM.tempK=(SIM.tempK+1)%11;state='Sıcaklık: '+(SIM.tempK<4?'soğuk':SIM.tempK<7?'ılık':'sıcak')+' ('+SIM.tempK+'/10)';break;
+    case id==='k_fan':SIM.fan=(SIM.fan+1)%5;state='Fan: '+SIM.fan+'. kademe';break;
+    case id==='k_dist':SIM.dist=(SIM.dist+1)%5;state='Hava: '+['yüz','yüz + ayak','ayak','ayak + cam','ön cam'][SIM.dist];break;
+  }
+  INT.drawRadio(SIM);
+  // LEDs on climate buttons
+  INT.ctls.forEach(k=>{if(['ac','recirc','rdef'].includes(k.id)){const on=SIM[k.id];const f=k.obj.userData.face;if(f){const x=f.material.userData.ctx;x.fillStyle=on?'#ffb000':'#3b3f45';x.fillRect(50,6,28,5);f.material.map.needsUpdate=true;}}});
+  ctlCard(c,state);
+}
+function ctlCard(c,state){$('#cCat').textContent='Kumanda';$('#cName').textContent=c.n;$('#cDesc').innerHTML=(state?'<span class="k">Durum</span>'+state:'')+'<span class="k">Ne işe yarar</span>'+c.d;$('#cActs').innerHTML='';$('#card').classList.add('show');$('#hint').style.opacity=0;}
+function simTick(dt){
+  if(!INT)return;
+  // ignition sweep, idle, revs
+  if(SIM.sweep>0){SIM.sweep-=dt;const t=1-Math.abs(SIM.sweep-0.8)/0.8;SIM.rpm=8000*Math.max(0,t);SIM.speed=240*Math.max(0,t);}
+  else{SIM.speed=0;const tgt=SIM.running?SIM.rpmT+(Math.random()-0.5)*30:0;SIM.rpm+= (tgt-SIM.rpm)*Math.min(1,dt*(SIM.rpmT>1000?6:3));if(SIM.running&&SIM.rpmT>1000&&SIM.pedal.gas<0.1)SIM.rpmT=820;}
+  SIM.temp+=((SIM.running?0.5:SIM.ign?0.15:0)-SIM.temp)*dt*0.2;
+  SIM.blinkT+=dt;const bl=(SIM.hazard||SIM.signal)?(Math.floor(SIM.blinkT/0.4)%2===0):false;SIM.blinkOn=bl;
+  if(SIM.msgT>0){SIM.msgT-=dt;if(SIM.msgT<=0)SIM.msg='';}
+  if(SIM.radio.infoT>0){SIM.radio.infoT-=dt;if(SIM.radio.infoT<=0){SIM.radio.info='';INT.drawRadio(SIM);}}
+  Object.keys(SIM.pedal).forEach(k=>{SIM.pedal[k]=Math.max(0,SIM.pedal[k]-dt*1.6);});
+  SIM.gearCl=SIM.gear;
+  const lit=SIM.ign>0;if(lit||SIM.needDraw){INT.drawCluster(Object.assign({},SIM,{gear:SIM.gear==='N'?'N':SIM.gear,msg:SIM.msg}));SIM.needDraw=lit;}
+  // exterior lamps: indicators, brake lights, headlights
+  const headOn=S.lights,tailBase=SIM.lights>=1||S.lights;
+  CAR_MATS.forEach(m=>{if(m.userData.lamp==='head'){if(bl){m.emissive.setHex(0xff8a00);m.emissiveIntensity=1.6;}else{m.emissive.setHex(headOn?0xfff1d6:0);m.emissiveIntensity=headOn?1.4:0;}}
+    if(m.userData.lamp==='tail'){const brake=SIM.pedal.brake>0.05;if(bl&&!brake){m.emissive.setHex(0xff7a00);m.emissiveIntensity=1.6;}else{m.emissive.setHex(brake||tailBase?0xff1010:0);m.emissiveIntensity=brake?2.6:tailBase?1.2:0;}}});
+  // animated controls
+  INT.ctls.forEach(c=>{const o=c.obj;
+    if(c.pressT>0){c.pressT-=dt;const k=Math.sin(Math.max(0,c.pressT)/0.18*Math.PI);if(c.axis)o.position.copy(c.rest.p).addScaledVector(c.axis,(c.depth||0.003)*k);}
+    if(c.kind==='knob'){const tgt={k_temp:(SIM.tempK-5)*0.25,k_fan:SIM.fan*0.5,k_dist:SIM.dist*0.5,lightsw:SIM.lights*0.6,vol:SIM.radio.vol*0.08,menu:0}[c.id]||0;o.rotation.z+=(-tgt-o.rotation.z)*Math.min(1,dt*10);}
+    if(c.kind==='key'){const tgt=SIM.ign===0?0:SIM.ign===1?0.9:(SIM.crank>0?1.5:0.9);o.rotation.x+=(tgt-o.rotation.x)*Math.min(1,dt*10);}
+    if(c.kind==='stalk'){const tgt=c.id==='st_left'?SIM.signal*0.12:(c.pressT>0?-0.1:0);o.rotation.z+=(tgt-o.rotation.z)*Math.min(1,dt*10);}
+    if(c.kind==='pedal'){const k=c.id.slice(2);o.rotation.z=c.rest.r.z-SIM.pedal[k]*0.22;}});
+  if(SIM.crank>0)SIM.crank-=dt;
+  const L=INT.GEAR.lever,gp=GPOS[SIM.gear];L.rotation.z+=(-gp[1]*0.22-L.rotation.z)*Math.min(1,dt*10);L.rotation.x+=(gp[0]*0.16-L.rotation.x)*Math.min(1,dt*10);
+  INT.HB.lever.rotation.z+=((SIM.hb?-0.42:-0.06)-INT.HB.lever.rotation.z)*Math.min(1,dt*8);
+  INT.GB.hinge.rotation.z+=((SIM.glove?0.95:0)-INT.GB.hinge.rotation.z)*Math.min(1,dt*6);
+  INT.ARM.hinge.rotation.z+=((SIM.arm?-1.2:0)-INT.ARM.hinge.rotation.z)*Math.min(1,dt*6);
+  ['visorL','visorR'].forEach(k=>{const h=INT.VIS[k];h.rotation.z+=((SIM[k]?1.45:0)-h.rotation.z)*Math.min(1,dt*6);});
+  ['rear60','rear40'].forEach(k=>{const h=INT.REAR[k];h.rotation.z+=((SIM[k]?1.3:0)-h.rotation.z)*Math.min(1,dt*5);});
+  INT.LAMPS.mats.forEach(m=>m.emissiveIntensity=SIM.roofl?2.2:0);
+  Object.values(DOORGLASS).forEach(g=>{g.v+=(g.t-g.v)*Math.min(1,dt*1.8);g.m.position.copy(g.base).addScaledVector(g.d,g.v);});
 }
 
 /* ================= free camera: zoom to the point under the finger, double-tap to re-centre ================= */
@@ -784,6 +899,10 @@ renderer.domElement.addEventListener('pointerup',e=>{
   if(e.pointerType==='touch'){const now=performance.now();if(lastTap&&now-lastTap.t<320&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<30){lastTap=null;retarget(pickPoint(e.clientX,e.clientY));hideCard();return;}lastTap={t:now,x:e.clientX,y:e.clientY};}
   const r=renderer.domElement.getBoundingClientRect(),v=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   const rc=new THREE.Raycaster();rc.setFromCamera(v,camera);
+  if(isInt()&&INT){const roots=[INT.root,...INT.doorTrims.map(t=>t.obj)];const hh=rc.intersectObjects(roots,true).filter(h=>isVisible(h.object)&&h.object.material!==ghostMat&&!(cutY()<h.point.y));
+    if(hh.length){let o=hh[0].object;let c=null,pp=null;while(o){if(!c&&o.userData.ctl)c=o.userData.ctl;if(!pp&&o.userData.ipart)pp=o.userData.ipart;o=o.parent;}
+      if(c&&!LABF){ctlAction(c);return;}if(pp){labFocus(pp);return;}}
+  }
   if((mode==='lab'||mode==='eng')&&ENG){const hh=rc.intersectObjects(bayGroup&&mode==='eng'?[ENG.root,bayGroup]:[ENG.root],true).filter(h=>isVisible(h.object)&&h.object.material!==ghostMat);
     if(hh.length){let o=hh[0].object;while(o&&!o.userData.epart)o=o.parent;if(o){labFocus(o.userData.epart);return;}}
     if(mode==='lab'){if(LABF)labUnfocus();return;}}
@@ -837,9 +956,10 @@ function tick(){
   const lab=mode==='lab';carRoot.visible=!lab;if(engRoot){engRoot.visible=lab;engRoot.userData.stand.visible=lab&&!(LABF&&LABF.iso);ENG.parts.forEach(p=>{if(!p.car)p.obj.position.copy(p.base).addScaledVector(p.ex,lab?S.labEx:0);});}
   const hgm=hsGroupForMode();HS.forEach(h=>{h.sprite.visible=!!hgm&&h.g===hgm&&(!FOCUS||(!FOCUS.iso)||FOCUS.h===h)&&!(FOCUS&&FOCUS.iso);});
   const iso=!!(FOCUS&&FOCUS.iso);[floor,disk,ring,contact].forEach(o=>o.visible=!iso);
-  cabinLight.intensity=damp(cabinLight.intensity,mode==='int'?3.2:mode==='drv'?2.0:0,3);
+  simTick(RD);
+  cabinLight.intensity=damp(cabinLight.intensity,(mode==='int'?1.2:mode==='drv'?0.8:0)+(SIM.roofl?1.0:0),3);
   if(camAnim){camAnim.t=(performance.now()-camAnim.s0)/1000/camAnim.d;const e=ease(clamp(camAnim.t,0,1));camera.position.lerpVectors(camAnim.p0,camAnim.p1,e);controls.target.lerpVectors(camAnim.t0,camAnim.t1,e);if(camAnim.t>=1)camAnim=null;}
-  renderer.toneMappingExposure=damp(renderer.toneMappingExposure,mode==='drv'?1.9:mode==='int'?1.35:1.0,3);
+  renderer.toneMappingExposure=damp(renderer.toneMappingExposure,mode==='drv'?1.25:mode==='int'?1.08:1.0,3);
   if(flashT>0){flashT-=RD;if(flashT<=0)unflash();}
   controls.update();renderer.render(scene,camera);requestAnimationFrame(tick);
 }
@@ -848,7 +968,7 @@ window.addEventListener('resize',resize);resize();
 if(stage.clientWidth<stage.clientHeight){Object.entries(cams).forEach(([k,c])=>{if(k==='drv')return;const F={ext:1.2,eng:1.35,int:1.5}[k]||1.5;const p=new THREE.Vector3(...c.p),t=new THREE.Vector3(...c.t);p.sub(t).multiplyScalar(F).add(t);c.p=p.toArray();});camera.position.set(...cams.ext.p);}
 renderRail();renderSub();tick();
 function finish(){renderSub();$('#loader').style.opacity=0;setTimeout(()=>{const l=$('#loader');if(l)l.remove();},500);setTimeout(()=>{$('#hint').style.opacity=0;},7000);window.READY=1;}
-window.__astra={setMode,S,T,camera,controls,GEO,HS,focusHS,isolateHS,get ENG(){return ENG;},labFocus,labIso,get hood(){return hood;}};
+window.__astra={setMode,S,T,camera,controls,GEO,HS,focusHS,isolateHS,get ENG(){return ENG;},labFocus,labIso,get hood(){return hood;},get inner(){return window.__inner;},get INT(){return INT;},SIM,ctlAction};
 })();
 </script>
 </body>
