@@ -121,12 +121,13 @@ ul.eq li span:last-child{font-family:var(--mono);font-size:.74rem;white-space:no
     <p>2017 · 1.6 Ecotec 115 PS · 5 ileri manuel</p>
   </div>
   <div class="topbtns">
+    <button class="icon-btn" id="btnCenter" aria-label="Görünümü ortala"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>Ortala</button>
     <button class="icon-btn" id="btnInfo" aria-label="Araç bilgisi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>Bilgi</button>
   </div>
 </div>
 
 <div class="card" id="card" role="status"><button class="x" id="cardX" aria-label="Kapat">×</button><div class="cat" id="cCat"></div><h3 id="cName"></h3><p id="cDesc"></p><div class="acts" id="cActs"></div></div>
-<div class="hint" id="hint">Döndür: sürükle · Yakınlaş: iki parmak · Parçaya dokun: bilgi</div>
+<div class="hint" id="hint">Tek parmak: döndür · İki parmak: yakınlaş / kaydır · Çift dokun: orayı merkez yap</div>
 
 <div class="bottom">
   <div class="sub" id="sub"></div>
@@ -189,7 +190,8 @@ const camera=new THREE.PerspectiveCamera(40,stage.clientWidth/stage.clientHeight
 camera.position.set(5.6,2.1,4.6);
 const controls=new THREE.OrbitControls(camera,renderer.domElement);
 controls.target.set(0,0.62,0);controls.enableDamping=true;controls.dampingFactor=0.08;
-controls.minDistance=0.25;controls.maxDistance=12;controls.maxPolarAngle=Math.PI*0.52;controls.panSpeed=0.6;controls.rotateSpeed=0.7;
+controls.minDistance=0.01;controls.maxDistance=30;controls.maxPolarAngle=Math.PI*0.58;controls.panSpeed=1.0;controls.rotateSpeed=0.7;
+controls.enableZoom=false;controls.screenSpacePanning=true; // zoom is handled below: towards the finger / cursor, not the centre
 
 scene.add(new THREE.HemisphereLight(0xdde6ff,0x1a1d22,0.6));
 const sun=new THREE.DirectionalLight(0xffffff,1.7);sun.position.set(4,7,3);sun.castShadow=true;
@@ -497,7 +499,7 @@ const cams={
 };
 let camAnim=null;
 function flyTo(k,dur){const c=cams[k];camAnim={s0:performance.now(),t:0,d:dur||1.1,p0:camera.position.clone(),t0:controls.target.clone(),p1:new THREE.Vector3(...c.p),t1:new THREE.Vector3(...c.t)};
-  controls.minDistance=k==='drv'?0.05:0.6;controls.maxPolarAngle=k==='drv'?Math.PI*0.75:Math.PI*0.52;}
+  controls.maxPolarAngle=k==='drv'?Math.PI*0.95:Math.PI*0.58;}
 const MODES=[
   {k:'ext',n:'Dış',s:'Genel görünüm'},{k:'doors',n:'Kapılar',s:'4 kapı açılır'},{k:'int',n:'İç mekân',s:'Tavan kesik'},
   {k:'drv',n:'Sürücü',s:'Koltuktan bakış'},{k:'eng',n:'Motor',s:'Gerçek tarama'},{k:'trk',n:'Bagaj',s:'460 litre'},
@@ -613,7 +615,7 @@ function focusHS(h){
   if(mode==='drv'){dir.set(-1,0.5,0).normalize();}
   const dist=h.g==='eng'?0.55+h.r:0.45+h.r;
   camAnim={s0:performance.now(),t:0,d:0.9,p0:camera.position.clone(),t0:controls.target.clone(),p1:h.v.clone().addScaledVector(dir,dist),t1:h.v.clone()};
-  controls.minDistance=0.08;controls.maxPolarAngle=Math.PI*0.9;
+  controls.maxPolarAngle=Math.PI*0.9;
   showHSCard();renderSub();
 }
 function isolateHS(){if(!FOCUS)return;applyIsoPlanes();FOCUS.iso=!FOCUS.iso;setIso(FOCUS.iso?FOCUS.h.v:null,FOCUS.h.r);
@@ -630,11 +632,35 @@ function showHSCard(){const h=FOCUS.h;toast((h.g==='eng'?'Motor bölümü':'İç
 function renderHSRail(s){const g=hsGroupForMode();if(!g)return;const rail=document.createElement('div');rail.className='hsrail';
   HS.filter(h=>h.g===g).forEach(h=>{const b=document.createElement('button');b.className='hs'+(FOCUS&&FOCUS.h===h?' on':'');b.innerHTML='<b>'+h.i+'</b>'+h.n;b.onclick=()=>focusHS(h);rail.appendChild(b);});s.appendChild(rail);}
 
+/* ================= free camera: zoom to the point under the finger, double-tap to re-centre ================= */
+const _rcz=new THREE.Raycaster();
+function pickPoint(cx,cy){const r=renderer.domElement.getBoundingClientRect(),v=new THREE.Vector2((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1);
+  _rcz.setFromCamera(v,camera);const h=_rcz.intersectObject(carRoot,true).find(h=>isVisible(h.object)&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.3));
+  if(h)return h.point.clone();return _rcz.ray.at(Math.max(0.3,camera.position.distanceTo(controls.target)),new THREE.Vector3());}
+function zoomAt(P,f){ // homothety around P: P stays under the finger, view direction is kept
+  camAnim=null;const d=camera.position.distanceTo(P);
+  if(f>0&&d<0.06){const dir=new THREE.Vector3();camera.getWorldDirection(dir);const step=0.04*f/0.1;camera.position.addScaledVector(dir,step);controls.target.addScaledVector(dir,step);return;}
+  if(f<0&&d>25)return;
+  camera.position.lerp(P,f);controls.target.lerp(P,f);}
+let wheelP=null,wheelT=0;
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();const now=performance.now();if(!wheelP||now-wheelT>250)wheelP=pickPoint(e.clientX,e.clientY);wheelT=now;
+  zoomAt(wheelP,clamp(-e.deltaY*0.0015,-0.3,0.3));},{passive:false});
+let pinch=null;
+function tdist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);}
+renderer.domElement.addEventListener('touchstart',e=>{if(e.touches.length===2){const t=e.touches;pinch={d:tdist(t),P:pickPoint((t[0].clientX+t[1].clientX)/2,(t[0].clientY+t[1].clientY)/2)};}},{passive:true});
+renderer.domElement.addEventListener('touchmove',e=>{if(pinch&&e.touches.length===2){const d=tdist(e.touches),k=d/pinch.d;pinch.d=d;if(Math.abs(k-1)>0.001)zoomAt(pinch.P,clamp(1-1/k,-0.35,0.35));}},{passive:true});
+renderer.domElement.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=null;},{passive:true});
+function retarget(P){camAnim={s0:performance.now(),t:0,d:0.6,p0:camera.position.clone(),t0:controls.target.clone(),p1:camera.position.clone().add(P.clone().sub(controls.target).multiplyScalar(0.35)),t1:P.clone()};}
+renderer.domElement.addEventListener('dblclick',e=>{retarget(pickPoint(e.clientX,e.clientY));hideCard();});
+let lastTap=null;
+$('#btnCenter').onclick=()=>{if(FOCUS){FOCUS=null;setIso(null);renderSub();}hideCard();flyTo(mode);};
+
 /* ================= picking ================= */
 let downXY=null;
 renderer.domElement.addEventListener('pointerdown',e=>{downXY=[e.clientX,e.clientY,performance.now()];});
 renderer.domElement.addEventListener('pointerup',e=>{
   if(!downXY)return;const dx=e.clientX-downXY[0],dy=e.clientY-downXY[1];if(dx*dx+dy*dy>64||performance.now()-downXY[2]>450)return;
+  if(e.pointerType==='touch'){const now=performance.now();if(lastTap&&now-lastTap.t<320&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<30){lastTap=null;retarget(pickPoint(e.clientX,e.clientY));hideCard();return;}lastTap={t:now,x:e.clientX,y:e.clientY};}
   const r=renderer.domElement.getBoundingClientRect(),v=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   const rc=new THREE.Raycaster();rc.setFromCamera(v,camera);
   const hg=hsGroupForMode();
