@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Işık Arşivi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Aputure, Nanlite ve Godox sürekli ışıklarının geçmişten bugüne kronolojik arşivi: marka marka zaman çizelgesi, teknik özellikler ve karşılaştırma.">
+<meta name="theme-color" content="#121316">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky kontrol çubuğu + yıl yıl dikey zaman çizelgesi; masaüstünde yıl etiketi solda yapışkan, telefonda kartların üstünde. */
+:root{
+  --bg:#121316; --surface:#1b1d22; --surface-2:#23262c; --line:#2d3038; --fg:#eceae4; --muted:#9a9da6;
+  --aputure:#ff6a3d; --nanlite:#3fb6e8; --godox:#f2c12e; --focus:#ffffff;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:10px; color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#f3f3f1; --surface:#ffffff; --surface-2:#ececea; --line:#d9d9d5; --fg:#16171a; --muted:#5d616b;
+  --aputure:#d9481c; --nanlite:#1679b0; --godox:#9a7300; --focus:#16171a; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f3f3f1; --surface:#ffffff; --surface-2:#ececea; --line:#d9d9d5; --fg:#16171a; --muted:#5d616b;
+  --aputure:#d9481c; --nanlite:#1679b0; --godox:#9a7300; --focus:#16171a; color-scheme:light}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+h1,h2,h3{text-wrap:balance;margin:0}
+
+/* Hero */
+.hero{padding-block:28px 18px}
+.eyebrow{font:500 12px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.hero h1{font:800 clamp(44px,9vw,96px)/.9 var(--f-display);letter-spacing:.01em;text-transform:uppercase;margin-top:10px}
+.hero p{max-width:62ch;color:var(--muted);margin:12px 0 0}
+.kelvin{height:6px;border-radius:3px;margin-top:20px;background:linear-gradient(90deg,#ff8a1f,#ffb35c 18%,#ffd9a8 36%,#fff3e6 52%,#f1f3ff 68%,#c9d8ff 100%)}
+.kscale{display:flex;justify-content:space-between;font:12px var(--f-mono);color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+
+/* Sticky bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar .wrap{padding-block:10px;display:grid;gap:10px}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600}
+.tab .dot{width:9px;height:9px;border-radius:50%;background:var(--c,var(--fg))}
+.tab .n{font:12px var(--f-mono);color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tab[aria-selected="true"] .n{color:inherit;opacity:.7}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search{flex:1 1 160px;min-width:0;position:relative}
+.search input{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px 9px 34px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.ctl{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.ctl[aria-expanded="true"]{border-color:var(--fg)}
+.filters{display:grid;gap:8px}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chips .lbl{flex:0 0 auto;font:500 11px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);align-self:center;min-width:58px}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:transparent;border-radius:6px;padding:5px 10px;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--surface-2);border-color:var(--fg)}
+
+/* Year ruler */
+.ruler{display:flex;gap:3px;overflow-x:auto;scrollbar-width:thin;padding-block:4px 2px}
+.yr{flex:0 0 auto;width:38px;background:none;border:0;padding:0;cursor:pointer;display:grid;gap:3px;justify-items:center}
+.yr .stack{height:34px;width:14px;display:flex;flex-direction:column-reverse;border-radius:3px;overflow:hidden;background:var(--surface-2)}
+.yr .stack i{display:block;width:100%}
+.yr span{font:11px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.yr.off{opacity:.25}
+
+/* Brand intro */
+.intro{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;padding-block:22px 4px}
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:8px;align-content:start;min-width:0}
+.bcard h2{font:800 30px/1 var(--f-display);text-transform:uppercase;color:var(--c)}
+.bcard .meta{font:12px var(--f-mono);color:var(--muted)}
+.bcard p{margin:0;font-size:14px}
+.bcard a{color:var(--c);font-weight:600;font-size:14px}
+.stats{display:flex;gap:16px;font:12px var(--f-mono);color:var(--muted)}
+.stats b{display:block;font:600 20px var(--f-mono);color:var(--fg)}
+
+/* Timeline */
+.status{font:13px var(--f-mono);color:var(--muted);padding-block:16px 0}
+.year{display:grid;grid-template-columns:120px minmax(0,1fr);gap:20px;padding-block:22px;border-top:1px solid var(--line);content-visibility:auto;contain-intrinsic-size:auto 400px}
+.year:first-child{border-top:0}
+.yl{position:sticky;top:calc(env(safe-area-inset-top,0px) + 170px);align-self:start}
+.yl h3{font:800 54px/.9 var(--f-display);font-variant-numeric:tabular-nums}
+.yl small{font:12px var(--f-mono);color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.card{position:relative;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 12px;cursor:pointer;display:grid;gap:9px;min-width:0;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--c);transform:translateY(-1px)}
+.card.sel{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.card .top{display:flex;align-items:center;gap:8px;font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card .top .dot{width:8px;height:8px;border-radius:50%;background:var(--c);flex:0 0 auto}
+.card h4{margin:0;font:600 16px/1.25 var(--f-body);overflow-wrap:anywhere}
+.tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font:500 11px var(--f-mono);padding:2px 7px;border-radius:4px;background:var(--surface-2);color:var(--fg)}
+.tag.mode-R{background:linear-gradient(90deg,#e5484d33,#46a75833,#3e63dd33)}
+.spec{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:center;font:12px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.spec .v{color:var(--fg);text-align:right}
+.meter{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--c)}
+.cct{height:4px;border-radius:2px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--line) 70%,transparent)}
+.empty{padding:60px 0;text-align:center;color:var(--muted)}
+
+/* Dialog / sheet */
+dialog{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:14px;padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 40px)}
+dialog::backdrop{background:rgb(0 0 0 / .55)}
+.dlg{padding:20px;display:grid;gap:14px;overflow:auto;max-height:calc(100dvh - 42px)}
+.dlg header{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.dlg h2{font:800 34px/1 var(--f-display);text-transform:uppercase;overflow-wrap:anywhere}
+.x{background:var(--surface-2);border:0;border-radius:8px;width:36px;height:36px;cursor:pointer;flex:0 0 auto;font-size:18px}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0;font-size:14px}
+.dl dt{font:12px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+.dl dd{margin:0;font-variant-numeric:tabular-nums}
+.feat{margin:0;padding-left:18px;display:grid;gap:4px}
+.btn{border:0;border-radius:8px;padding:11px 16px;font-weight:600;cursor:pointer;background:var(--fg);color:var(--bg)}
+.btn.ghost{background:var(--surface-2);color:var(--fg)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:640px){
+  dialog{margin:auto 0 0;width:100vw;max-width:100vw;border-radius:16px 16px 0 0;border-bottom:0}
+  .dlg{padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+}
+
+/* Compare tray */
+.tray{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tray .wrap{padding-block:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tray .items{display:flex;gap:6px;flex:1 1 auto;min-width:0;overflow-x:auto}
+.pill{flex:0 0 auto;display:flex;gap:6px;align-items:center;background:var(--surface-2);border-radius:999px;padding:5px 6px 5px 10px;font-size:13px;max-width:220px}
+.pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill button{border:0;background:none;cursor:pointer;color:var(--muted);padding:0 4px}
+.cmp{overflow-x:auto}
+.cmp table{border-collapse:collapse;width:100%;min-width:420px;font-size:13px}
+.cmp th,.cmp td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp th{font:12px var(--f-mono);color:var(--muted);text-transform:uppercase;white-space:nowrap}
+.cmp thead td{font-weight:600}
+footer{color:var(--muted);font-size:13px;padding-block:40px 120px;border-top:1px solid var(--line);margin-top:30px}
+footer a{color:var(--fg)}
+
+@media (max-width:760px){
+  .year{grid-template-columns:1fr;gap:10px;padding-block:18px}
+  .yl{position:static;display:flex;align-items:baseline;gap:10px}
+  .yl h3{font-size:42px}
+  .grid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Sürekli ışık arşivi · <span id="total">0</span> model · <span id="span"></span></div>
+  <h1>Aputure<br>Nanlite<br>Godox</h1>
+  <p>Üç markanın ilk LED panelinden bugünkü tam renkli sinema ışıklarına kadar çıkardığı ürünler, yıl yıl. Bir karta dokunun, özelliklerini açın; en fazla üç modeli yan yana karşılaştırın.</p>
+  <div class="kelvin" aria-hidden="true"></div>
+  <div class="kscale" aria-hidden="true"><span>1800K</span><span>3200K tungsten</span><span>5600K gün ışığı</span><span>10000K+</span></div>
+</div></header>
+
+<nav class="bar" aria-label="Filtreler"><div class="wrap">
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="row">
+    <label class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Model ara: 600d, PavoTube, Knowled…" autocomplete="off" aria-label="Model ara"></label>
+    <button class="ctl" id="ftoggle" aria-expanded="false" aria-controls="filters">Filtre</button>
+    <button class="ctl" id="sort" aria-label="Sıralamayı değiştir">Eski → Yeni</button>
+  </div>
+  <div class="filters" id="filters" hidden>
+    <div class="chips" id="types"><span class="lbl">Tip</span></div>
+    <div class="chips" id="modes"><span class="lbl">Renk</span></div>
+  </div>
+  <div class="ruler" id="ruler" aria-label="Yıla git"></div>
+</div></nav>
+
+<main class="wrap">
+  <section class="intro" id="intro"></section>
+  <div class="status" id="status" aria-live="polite"></div>
+  <div id="timeline"></div>
+</main>
+
+<footer><div class="wrap">
+  <p>Veriler üreticilerin duyuruları, ürün sayfaları ve sektör yayınlarından derlendi. Güç, renk sıcaklığı ve CRI değerleri yaklaşıktır; yıl, ürünün duyurulduğu yıldır. Satın almadan önce resmî sayfadan doğrulayın:
+  <a href="https://www.aputure.com" rel="noopener" target="_blank">aputure.com</a> ·
+  <a href="https://www.nanlite.com" rel="noopener" target="_blank">nanlite.com</a> ·
+  <a href="https://www.godox.com" rel="noopener" target="_blank">godox.com</a></p>
+  <p>Not: Yalnızca sürekli ışıklar listelenir; flaşlar ve optik dışı aksesuarlar kapsam dışıdır.</p>
+</div></footer>
+
+<dialog id="detail" aria-labelledby="dTitle"><div class="dlg" id="dBody"></div></dialog>
+<dialog id="compare" aria-label="Karşılaştırma"><div class="dlg" id="cBody"></div></dialog>
+<div class="tray" id="tray" hidden><div class="wrap">
+  <div class="items" id="trayItems"></div>
+  <button class="btn" id="cmpBtn">Karşılaştır</button>
+</div></div>
+
+<script src="data.js"></script>
+<script>
+(() => {
+  const B = window.LIGHT_BRANDS, L = window.LIGHTS.map((l, i) => ({...l, id: i}));
+  const $ = s => document.querySelector(s);
+  const MODES = {D: "Gün ışığı", B: "Bi-color", R: "Tam renk"};
+  const TYPES = [...new Set(L.map(l => l.t))];
+  const st = {brand: "all", q: "", types: new Set(), modes: new Set(), asc: true, cmp: []};
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const cvar = b => `var(--${b})`;
+  const years = L.map(l => l.y), minY = Math.min(...years), maxY = Math.max(...years);
+  const maxW = Math.max(...L.map(l => l.w));
+
+  // Kelvin → RGB (Tanner Helland yaklaşımı)
+  function k2rgb(k) {
+    const t = k / 100; let r, g, b;
+    if (t <= 66) { r = 255; g = 99.47 * Math.log(t) - 161.12; b = t <= 19 ? 0 : 138.52 * Math.log(t - 10) - 305.04; }
+    else { r = 329.7 * Math.pow(t - 60, -0.1332); g = 288.12 * Math.pow(t - 60, -0.0755); b = 255; }
+    const c = v => Math.max(0, Math.min(255, Math.round(v)));
+    return `rgb(${c(r)},${c(g)},${c(b)})`;
+  }
+  function cctBar(l) {
+    const nums = (l.k.match(/\d{4,5}/g) || []).map(Number);
+    if (!nums.length) return "var(--surface-2)";
+    const lo = Math.min(...nums), hi = Math.max(...nums);
+    const stops = lo === hi ? [k2rgb(lo), k2rgb(lo)] : [0, .25, .5, .75, 1].map(p => k2rgb(lo + (hi - lo) * p));
+    if (l.c === "R") stops.push("#e5484d", "#46a758", "#3e63dd", "#d6409f");
+    return `linear-gradient(90deg,${stops.join(",")})`;
+  }
+  const powPct = w => w ? Math.max(4, Math.log10(w + 1) / Math.log10(maxW + 1) * 100) : 0;
+  const powTxt = w => w ? `${w.toLocaleString("tr-TR")} W` : "Optik ek";
+
+  // Sekmeler
+  const tabs = $("#tabs");
+  const brandList = [["all", "Tümü"], ...Object.entries(B).map(([k, v]) => [k, v.name])];
+  tabs.innerHTML = brandList.map(([k, n]) =>
+    `<button class="tab" role="tab" data-b="${k}" style="--c:${k === "all" ? "var(--fg)" : cvar(k)}"><span class="dot"></span>${n}<span class="n">${k === "all" ? L.length : L.filter(l => l.b === k).length}</span></button>`).join("");
+  tabs.addEventListener("click", e => { const t = e.target.closest(".tab"); if (t) location.hash = t.dataset.b === "all" ? "tum" : t.dataset.b; });
+
+  // Filtre çipleri
+  const mkChips = (el, items, set, label) => {
+    el.insertAdjacentHTML("beforeend", items.map(([v, n]) => `<button class="chip" aria-pressed="false" data-v="${esc(v)}">${esc(n)}</button>`).join(""));
+    el.addEventListener("click", e => {
+      const c = e.target.closest(".chip"); if (!c) return;
+      set.has(c.dataset.v) ? set.delete(c.dataset.v) : set.add(c.dataset.v);
+      c.setAttribute("aria-pressed", set.has(c.dataset.v)); render();
+    });
+  };
+  mkChips($("#types"), TYPES.map(t => [t, t]), st.types);
+  mkChips($("#modes"), Object.entries(MODES), st.modes);
+  $("#ftoggle").onclick = e => { const f = $("#filters"); f.hidden = !f.hidden; e.currentTarget.setAttribute("aria-expanded", !f.hidden); };
+  $("#sort").onclick = e => { st.asc = !st.asc; e.currentTarget.textContent = st.asc ? "Eski → Yeni" : "Yeni → Eski"; render(); };
+  let qt; $("#q").addEventListener("input", e => { clearTimeout(qt); qt = setTimeout(() => { st.q = e.target.value.trim().toLocaleLowerCase("tr"); render(); }, 120); });
+
+  $("#total").textContent = L.length;
+  $("#span").textContent = `${minY}–${maxY}`;
+
+  function filtered() {
+    return L.filter(l =>
+      (st.brand === "all" || l.b === st.brand) &&
+      (!st.types.size || st.types.has(l.t)) &&
+      (!st.modes.size || st.modes.has(l.c)) &&
+      (!st.q || `${l.n} ${l.s} ${l.t} ${B[l.b].name} ${l.f.join(" ")}`.toLocaleLowerCase("tr").includes(st.q)));
+  }
+
+  function renderIntro() {
+    const keys = st.brand === "all" ? Object.keys(B) : [st.brand];
+    $("#intro").innerHTML = keys.map(k => {
+      const b = B[k], items = L.filter(l => l.b === k);
+      const ys = items.map(l => l.y), lat = items.filter(l => l.y === Math.max(...ys));
+      return `<article class="bcard" style="--c:${cvar(k)}">
+        <h2>${b.name}</h2>
+        <div class="meta">Kuruluş ${b.founded} · ${esc(b.origin)}</div>
+        <p>${esc(b.blurb)}</p>
+        <div class="stats"><div><b>${items.length}</b>model</div><div><b>${Math.min(...ys)}</b>ilk kayıt</div><div><b>${items.filter(l => l.c === "R").length}</b>tam renk</div></div>
+        <p class="meta">En yeni: ${esc(lat[lat.length - 1].n)}</p>
+        <a href="${b.url}" target="_blank" rel="noopener">Resmî site ↗</a>
+      </article>`;
+    }).join("");
+  }
+
+  function renderRuler(list) {
+    const cnt = {}; let peak = 1;
+    for (let y = minY; y <= maxY; y++) cnt[y] = {aputure: 0, nanlite: 0, godox: 0, all: 0};
+    list.forEach(l => { cnt[l.y][l.b]++; cnt[l.y].all++; });
+    Object.values(cnt).forEach(c => peak = Math.max(peak, c.all));
+    const ys = Object.keys(cnt); if (!st.asc) ys.reverse();
+    $("#ruler").innerHTML = ys.map(y => {
+      const c = cnt[y];
+      const segs = Object.keys(B).map(b => c[b] ? `<i style="height:${c[b] / peak * 100}%;background:${cvar(b)}"></i>` : "").join("");
+      return `<button class="yr${c.all ? "" : " off"}" data-y="${y}" ${c.all ? "" : "disabled"} aria-label="${y}: ${c.all} model"><div class="stack">${segs}</div><span>'${String(y).slice(2)}</span></button>`;
+    }).join("");
+  }
+  $("#ruler").addEventListener("click", e => {
+    const y = e.target.closest(".yr"); if (!y) return;
+    const sec = document.getElementById("y" + y.dataset.y);
+    if (sec) window.scrollTo({top: sec.getBoundingClientRect().top + scrollY - $(".bar").offsetHeight - 8});
+  });
+
+  function card(l) {
+    return `<button class="card${st.cmp.includes(l.id) ? " sel" : ""}" data-id="${l.id}" style="--c:${cvar(l.b)}">
+      <div class="top"><span class="dot"></span>${B[l.b].name} · ${esc(l.s)}</div>
+      <h4>${esc(l.n)}</h4>
+      <div class="tags"><span class="tag">${esc(l.t)}</span><span class="tag mode-${l.c}">${MODES[l.c]}</span></div>
+      <div class="spec">
+        <span>Güç</span><div class="meter"><i style="width:${powPct(l.w)}%"></i></div><span class="v">${powTxt(l.w)}</span>
+        <span>CCT</span><div class="cct" style="background:${cctBar(l)}"></div><span class="v">${esc(l.k.replace(/ \+ RGB/, "+"))}</span>
+      </div>
+    </button>`;
+  }
+
+  function render() {
+    const list = filtered();
+    renderRuler(list);
+    const by = {};
+    list.forEach(l => (by[l.y] ||= []).push(l));
+    const ys = Object.keys(by).map(Number).sort((a, b) => st.asc ? a - b : b - a);
+    $("#status").textContent = list.length ? `${list.length} model · ${ys.length} yıl` : "";
+    $("#timeline").innerHTML = ys.length ? ys.map(y => {
+      const items = by[y].sort((a, b) => a.b.localeCompare(b.b) || b.w - a.w);
+      return `<section class="year" id="y${y}"><div class="yl"><h3>${y}</h3><small>${items.length} model</small></div><div class="grid">${items.map(card).join("")}</div></section>`;
+    }).join("") : `<div class="empty">Bu filtrelerle eşleşen model yok. Aramayı ya da filtreleri temizleyin.</div>`;
+  }
+
+  // Detay
+  const dlg = $("#detail");
+  $("#timeline").addEventListener("click", e => { const c = e.target.closest(".card"); if (c) openDetail(+c.dataset.id); });
+  function openDetail(id) {
+    const l = L[id], inCmp = st.cmp.includes(id);
+    $("#dBody").innerHTML = `
+      <header><div style="display:grid;gap:6px"><div class="eyebrow" style="color:${cvar(l.b)}">${B[l.b].name} · ${esc(l.s)} · ${l.y}</div><h2 id="dTitle">${esc(l.n)}</h2></div><button class="x" data-close aria-label="Kapat">×</button></header>
+      <div class="cct" style="height:8px;background:${cctBar(l)}"></div>
+      <p style="margin:0">${esc(l.d)}</p>
+      <dl class="dl">
+        <dt>Yıl</dt><dd>${l.y}</dd>
+        <dt>Tip</dt><dd>${esc(l.t)}</dd>
+        <dt>Renk</dt><dd>${MODES[l.c]}</dd>
+        <dt>Güç</dt><dd>${powTxt(l.w)}</dd>
+        <dt>CCT</dt><dd>${esc(l.k)}</dd>
+        <dt>CRI/TLCI</dt><dd>${esc(l.cri)}</dd>
+      </dl>
+      <div><div class="eyebrow" style="margin-bottom:8px">Öne çıkanlar</div><ul class="feat">${l.f.map(f => `<li>${esc(f)}</li>`).join("")}</ul></div>
+      <div class="acts">
+        <button class="btn" id="toggleCmp">${inCmp ? "Karşılaştırmadan çıkar" : "Karşılaştırmaya ekle"}</button>
+        <a class="btn ghost" style="text-decoration:none" href="https://www.google.com/search?q=${encodeURIComponent(B[l.b].name + " " + l.n)}" target="_blank" rel="noopener">Web'de ara ↗</a>
+      </div>`;
+    $("#toggleCmp").onclick = () => { toggleCmp(id); dlg.close(); };
+    dlg.showModal();
+  }
+  [dlg, $("#compare")].forEach(d => d.addEventListener("click", e => { if (e.target === d || e.target.closest("[data-close]")) d.close(); }));
+
+  // Karşılaştırma
+  function toggleCmp(id) {
+    const i = st.cmp.indexOf(id);
+    if (i > -1) st.cmp.splice(i, 1); else { if (st.cmp.length >= 3) st.cmp.shift(); st.cmp.push(id); }
+    updateTray(); document.querySelectorAll(".card").forEach(c => c.classList.toggle("sel", st.cmp.includes(+c.dataset.id)));
+  }
+  function updateTray() {
+    $("#tray").hidden = !st.cmp.length;
+    $("#trayItems").innerHTML = st.cmp.map(id => `<span class="pill" style="border:1px solid ${cvar(L[id].b)}"><span>${esc(L[id].n)}</span><button data-rm="${id}" aria-label="${esc(L[id].n)} kaldır">×</button></span>`).join("")
+      + (st.cmp.length < 3 ? `<span class="pill" style="color:var(--muted);padding-right:10px">+ ${3 - st.cmp.length} kart seçebilirsiniz</span>` : "");
+    $("#cmpBtn").disabled = st.cmp.length < 2; $("#cmpBtn").style.opacity = st.cmp.length < 2 ? .5 : 1;
+  }
+  $("#trayItems").addEventListener("click", e => { const r = e.target.closest("[data-rm]"); if (r) toggleCmp(+r.dataset.rm); });
+  $("#cmpBtn").onclick = () => {
+    const xs = st.cmp.map(id => L[id]);
+    const row = (h, f) => `<tr><th>${h}</th>${xs.map(l => `<td>${f(l)}</td>`).join("")}</tr>`;
+    $("#cBody").innerHTML = `<header><h2>Karşılaştır</h2><button class="x" data-close aria-label="Kapat">×</button></header>
+      <div class="cmp"><table>
+        <thead><tr><th></th>${xs.map(l => `<td style="color:${cvar(l.b)}">${B[l.b].name}<br><span style="color:var(--fg)">${esc(l.n)}</span></td>`).join("")}</tr></thead>
+        <tbody>
+          ${row("Yıl", l => l.y)}${row("Seri", l => esc(l.s))}${row("Tip", l => esc(l.t))}${row("Renk", l => MODES[l.c])}
+          ${row("Güç", l => `<b>${powTxt(l.w)}</b><div class="meter" style="--c:${cvar(l.b)};margin-top:4px"><i style="width:${powPct(l.w)}%"></i></div>`)}
+          ${row("CCT", l => `${esc(l.k)}<div class="cct" style="margin-top:4px;background:${cctBar(l)}"></div>`)}
+          ${row("CRI", l => esc(l.cri))}${row("Özellik", l => l.f.map(esc).join("<br>"))}
+        </tbody></table></div>`;
+    $("#compare").showModal();
+  };
+
+  // Hash yönlendirme
+  function route() {
+    const h = location.hash.slice(1);
+    st.brand = B[h] ? h : "all";
+    tabs.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.b === st.brand));
+    renderIntro(); render();
+  }
+  addEventListener("hashchange", () => { route(); const m = $("main"); if (scrollY > m.offsetTop) scrollTo({top: m.offsetTop - $(".bar").offsetHeight}); });
+  route(); updateTray();
+})();
+</script>
+</body>
+</html>
