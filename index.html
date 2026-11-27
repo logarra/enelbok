@@ -284,8 +284,8 @@ async function fetchBuf(url,label){ // .glb when available, otherwise a base64 t
   const t=(await r.text()).trim(),bin=atob(t),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u.buffer;}
 function load(url,label){return fetchBuf(url,label).then(buf=>new Promise((res,rej)=>loader.parse(buf,'',res,rej)));}
 load('astra.glb','Araç modeli yükleniyor').then(car=>{buildCar(car.scene);
-  return load('dash.glb','İç konsol taraması yükleniyor').then(d=>buildDash(d.scene)).catch(e=>console.warn(e))
-    .then(()=>load('engine.glb','Motor taraması yükleniyor')).then(e=>buildEngine(e.scene)).catch(e=>console.warn(e));
+  try{buildBay();}catch(e){console.error(e);}
+  return load('dash.glb','İç konsol taraması yükleniyor').then(d=>buildDash(d.scene)).catch(e=>console.warn(e));
 }).then(()=>{finish();}).catch(err=>{console.error(err);$('#loadmsg').innerHTML='<span class="err">Model yüklenemedi ('+(err&&err.message||err)+'). Sayfayı yenile.</span>';});
 
 function splitTriangles(m,pred){ // move triangles of mesh m that satisfy pred(component) into a new mesh
@@ -483,7 +483,7 @@ function buildChassis(){
   C.push([ex,'Egzoz hattı','Ön boru, orta susturucu ve arka susturucu; çıkış tamponun altında gizli. Euro 5 emisyon.',[0,-0.25,0]]);
   C.push([mesh(rbox(0.55,0.2,0.9,0.06),M.engineDark,RX+0.4,0.18,0.1),'Yakıt deposu (56 L)','Plastik yakıt deposu arka koltuğun altında; yakıt pompası depo içinde. Kapak sağ arka çamurlukta.',[0,-0.35,0]]);
   const gb=new THREE.Group();gb.add(mesh(rbox(0.32,0.28,0.3,0.06),M.alu,FX+0.05,0.45,-0.42));
-  C.push([gb,'Şanzıman: F17 5 ileri manuel','Kablolu kumandalı 5 ileri + geri manuel şanzıman, diferansiyel entegre. Son çevrim oranı ≈ 3,94.',[0,0.25,-0.55]]);
+
   const chs=new THREE.Group();chs.name='CHASSIS';carRoot.add(chs);
   C.forEach(([o,n,d,e])=>{o.traverse(m=>{if(m.isMesh){m.castShadow=true;}});chs.add(o);o.userData.part={cat:CAT.chs,name:n,desc:d};reg(o,CAT.chs,null,null,e);});
   window.__chs=chs;
@@ -495,7 +495,7 @@ const cams={
   doors:{p:[2.4,1.9,5.0],t:[-0.3,0.75,0]},
   int:{p:[-1.6,3.3,-1.4],t:[-0.2,0.55,0]},
   drv:{p:[-0.02,1.14,-0.36],t:[0.7,0.93,-0.30]},
-  eng:{p:[3.7,2.4,1.8],t:[1.5,0.7,0]},
+  eng:{p:[3.3,2.15,1.15],t:[1.6,0.6,0.05]},
   trk:{p:[-4.4,2.3,2.1],t:[-1.9,0.7,0]},
   chs:{p:[4.2,1.6,4.6],t:[0,0.4,0]},
   xr:{p:[4.8,2.4,4.6],t:[0,0.6,0]},
@@ -515,13 +515,13 @@ function setMode(k){
   mode=k;
   T.doors=(k==='doors')?1:0;T.trunk=k==='trk'?1:0;T.hood=(k==='eng')?1:0;T.xray=k==='xr'?1:0;T.explode=k==='exp'?0.75:0;
   T.bodyHidden=k==='chs'?1:0;T.cut=k==='int'?1:0;
-  FOCUS=null;setIso(null);labUnfocus(true);T.labEx=0;flyTo(k);renderRail();renderSub();hideCard();
+  FOCUS=null;setIso(null);LABG=null;labUnfocus(true);T.labEx=0;placeEngine();applyLook();flyTo(k);renderRail();renderSub();hideCard();
 }
 function renderRail(){const r=$('#rail');r.innerHTML='';MODES.forEach(m=>{const b=document.createElement('button');b.className='chip'+(m.k===mode?' on':'');b.innerHTML='<b>'+m.n+'</b><small>'+m.s+'</small>';b.onclick=()=>setMode(m.k);r.appendChild(b);});}
 function tg(label,on,fn){const b=document.createElement('button');b.className='tg'+(on?' on':'');b.innerHTML='<i></i>'+label;b.onclick=fn;return b;}
 function renderSub(){
   const s=$('#sub');s.innerHTML='';
-  if(mode==='lab'){renderLabSub(s);return;}const box=document.createElement('div');box.className='toggles';
+  if(mode==='lab'||mode==='eng'){renderLabSub(s);return;}const box=document.createElement('div');box.className='toggles';
   box.appendChild(tg('Kapılar',T.doors>0.5,()=>{T.doors=T.doors>0.5?0:1;renderSub();}));
   box.appendChild(tg('Bagaj',T.trunk>0.5,()=>{T.trunk=T.trunk>0.5?0:1;renderSub();}));
   box.appendChild(tg('Kaput',T.hood>0.5,()=>{T.hood=T.hood>0.5?0:1;renderSub();}));
@@ -559,10 +559,10 @@ const SPEC={
 ,
   kaynak:()=>`<div class="sect">3D model kaynakları</div><ul class="eq">
     <li><span>Araç modeli: “Opel Astra J Sedan”, koelkastasbers</span><span>Sketchfab · Free Standard</span></li>
-    <li><span>Motor bölümü: “Opel Astra J 2013 1.4T hb engine scan”, hakane</span><span>Sketchfab · CC BY 4.0</span></li>
+    <li><span>Motor: 1.6 Ecotec A16XER, bu sayfa için parça parça sıfırdan modellendi (≈ 70 parça)</span><span>Kendi modelimiz</span></li>
     <li><span>Ön konsol: “Opel Astra 1.4T 2013 Dashboard (interior)”, hakane</span><span>Sketchfab · CC BY 4.0</span></li></ul>
     <p class="note">Araç modeli: <a style="color:inherit" href="https://sketchfab.com/3d-models/opel-astra-j-sedan-0c7a50857f8b4302b290a0654f8b2bc7" target="_blank" rel="noopener">sketchfab.com/3d-models/opel-astra-j-sedan-0c7a50857f8b4302b290a0654f8b2bc7</a>. Yükleyene göre bir GTA San Andreas modundan uyarlanmıştır.<br>
-    Motor taraması: <a style="color:inherit" href="https://sketchfab.com/3d-models/opel-astra-j-2013-14t-hb-engine-scan-d5248f42af86454fbc6619ed66424e35" target="_blank" rel="noopener">sketchfab.com/3d-models/…-d5248f42af86454fbc6619ed66424e35</a> (CC BY 4.0; küçültüldü ve araca yerleştirildi).<br>
+    Motor: gerçek ölçüler (çap 79 mm, strok 81,5 mm, silindir aralığı 86 mm) ve kullanıcının gönderdiği motor bölümü fotoğraflarına göre yerleşim. Tarama kullanılmadı; turbosuz (atmosferik) motor.<br>
     İç konsol taraması: sketchfab.com/3d-models/…-7a80120b242f42279666d9d74213cfce (CC BY 4.0; temizlendi, ölçeklendi ve araca yerleştirildi). Parça konumları Wikimedia Commons’taki Astra J iç mekân ve motor fotoğraflarıyla karşılaştırıldı.<br>
     Kaputun ayrılması, kapı/bagaj menteşeleri, numaralı parça işaretleri, vites kolu, pedallar, şasi şeması, bilgi kartları ve arayüz bu sayfa için eklendi.</p>`
 };
@@ -591,18 +591,6 @@ const HS=[
  {g:'int',p:[-0.95,0.62,0.0],r:0.5,n:'Arka koltuk',d:'Üç kişilik arka koltuk; sırt 60/40 katlanarak bagajla birleşir (460 L → 1010 L). Üç koltuk başlığı, üç adet 3 noktalı kemer ve dış koltuklarda ISOFIX bağlantıları.'},
  {g:'int',p:[0.45,1.27,0.0],r:0.14,n:'İç dikiz aynası & tavan konsolu',d:'Ön cam üst ortasındaki iç dikiz aynası (gece konumlu) ve tavan konsolundaki okuma lambaları. İki yanda aynalı güneşlikler.'},
  // engine bay (positions measured on the real Astra J engine-bay scan)
- {g:'eng',p:[1.60,0.66,0.18],r:0.22,n:'Motor kapağı / silindir kapağı (ECOTEC)',d:'Motorun üstündeki ECOTEC yazılı kapak; altında eksantrik milleri ve tek modül hâlinde 4 ateşleme bobini vardır. Bu araçtaki 1.6 Ecotec (A16XER): sıralı 4 silindir, 16 valf DOHC, çift değişken eksantrik zamanlaması (VVT), Twinport emme; 1598 cc, 115 PS @ 6000 d/d, 155 Nm @ 4000 d/d. Triger kayışlı (değişim ≈ 150.000 km / 10 yıl).'},
- {g:'eng',p:[1.70,0.62,0.04],r:0.08,n:'Yağ doldurma kapağı',d:'Silindir kapağı üzerindeki motor yağı doldurma kapağı. 1.6 Ecotec için dexos2 onaylı 5W-30, yağ filtresiyle ≈ 4,5 L. Seviye, sarı saplı yağ çubuğuyla motor soğukken ve düz zeminde kontrol edilir.'},
- {g:'eng',p:[1.46,0.74,-0.32],r:0.10,n:'Soğutma suyu genleşme kabı',d:'Kapağı sıcaklık uyarı sembollü beyaz plastik kap. Antifriz (GM Dexcool, pembe-turuncu) seviyesi motor soğukken MIN–MAX arasında olmalı. Motor sıcakken kapak açılmaz: sistem basınçlıdır.'},
- {g:'eng',p:[1.40,0.74,-0.21],r:0.08,n:'Fren hidroliği haznesi',d:'Ana fren merkezinin (ve vakum servonun) üzerindeki hazne, sürücü tarafında silecek kaportasının önünde. DOT 4 hidrolik; hidrolik debriyaj da bu hazneden beslenir. 2 yılda bir değiştirilmesi önerilir.'},
- {g:'eng',p:[1.62,0.70,-0.42],r:0.17,n:'Akü ve sigorta kutusu',d:'Motor bölümünün sol önünde 12 V akü (koruma kutusu içinde) ve yanında motor bölümü sigorta/röle kutusu. Akü: 1.6 benzinli için tipik olarak 60 Ah. Kutunun kapağında sigorta yerleşim şeması bulunur.'},
- {g:'eng',p:[1.57,0.71,0.59],r:0.15,n:'Hava filtresi kutusu',d:'Sağ taraftaki plastik kutu; içinde panel tipi kuru hava filtresi var. Motorun emdiği havayı tozdan arındırır. Değişim aralığı ≈ 30.000 km (tozlu yolda daha sık).'},
- {g:'eng',p:[1.74,0.64,0.54],r:0.12,n:'Emiş hortumu',d:'Hava filtresinden çıkan temiz havayı motora taşır. 1.6 atmosferik motorda hava, gaz kelebeği üzerinden plastik emme manifolduna (Twinport) gider. (Taranan araç 1.4 Turbo olduğu için hortum burada turboya bağlanıyor.)'},
- {g:'eng',p:[1.81,0.60,-0.14],r:0.13,n:'Turbo şarj havası borusu (yalnız 1.4T)',d:'Bu tarama bir Astra J 1.4 Turbo’dan alındı: bu kalın boru turbodan intercooler’a ve emmeye giden basınçlı havayı taşır. Senin 1.6 Ecotec 115 PS motorunda turbo ve bu boru yoktur; o bölgede atmosferik emme hattı bulunur.'},
- {g:'eng',p:[1.97,0.65,0.0],r:0.22,n:'Ön travers & kaput kilidi',d:'Radyatör, klima kondenseri ve far gruplarını taşıyan ön travers (radyatör desteği). Ortasında kaput kilidi ve emniyet mandalı; arkasında radyatör ve elektrikli soğutma fanı vardır.'},
- {g:'eng',p:[1.40,0.80,-0.07],r:0.25,n:'Silecek kaportası (torpido üstü)',d:'Ön camın dibindeki plastik ızgaralı kapak. Altında silecek motoru ve mekanizması, kabin havalandırmasının hava girişi ve polen filtresi bulunur. Motor bölümünü kabinden ayıran torpido sacının üstündedir.'},
- {g:'eng',p:[1.51,0.70,-0.645],r:0.10,n:'Sol amortisör kulesi',d:'Ön MacPherson süspansiyonun üst yatağının bağlandığı kule; amortisör ve helezon yay buradan gövdeye bağlanır.'},
- {g:'eng',p:[1.51,0.70,0.666],r:0.10,n:'Sağ amortisör kulesi',d:'Ön MacPherson süspansiyonun üst yatağının bağlandığı kule; amortisör ve helezon yay buradan gövdeye bağlanır.'},
 ];
 HS.forEach((h,i)=>{h.i=HS.filter(x=>x.g===h.g).indexOf(h)+1;h.v=new THREE.Vector3(...h.p);});
 const hsGroup=new THREE.Group();carRoot.add(hsGroup);
@@ -614,7 +602,7 @@ function setIso(c,r){isoPlanes.forEach((pl,k)=>{const a=k>>1,sg=pl.normal.getCom
 let isoApplied=false;
 function applyIsoPlanes(){if(isoApplied)return;isoApplied=true;const seen=new Set();carRoot.traverse(o=>{if(o.isMesh&&!seen.has(o.material)){seen.add(o.material);const m=o.material;m.clippingPlanes=(m.clippingPlanes||[]).concat(isoPlanes);m.needsUpdate=true;}});}
 let FOCUS=null;
-function hsGroupForMode(){return (mode==='int'||mode==='drv')?'int':mode==='eng'?'eng':null;}
+function hsGroupForMode(){return (mode==='int'||mode==='drv')?'int':null;}
 function focusHS(h){
   FOCUS={h,iso:false};setIso(null);
   const dir=camera.position.clone().sub(h.v);if(dir.lengthSq()<1e-6)dir.set(-1,1,0);dir.normalize();dir.y=Math.max(dir.y,0.45);dir.normalize();
@@ -638,51 +626,130 @@ function showHSCard(){const h=FOCUS.h;toast((h.g==='eng'?'Motor bölümü':'İç
 function renderHSRail(s){const g=hsGroupForMode();if(!g)return;const rail=document.createElement('div');rail.className='hsrail';
   HS.filter(h=>h.g===g).forEach(h=>{const b=document.createElement('button');b.className='hs'+(FOCUS&&FOCUS.h===h?' on':'');b.innerHTML='<b>'+h.i+'</b>'+h.n;b.onclick=()=>focusHS(h);rail.appendChild(b);});s.appendChild(rail);}
 
-/* ================= MOTOR STÜDYOSU: procedural A16XER, part by part ================= */
-let ENG=null,engRoot=null,LABF=null;
+/* ================= A16XER engine: one procedural model, shown in the car (Motor) and alone on a stand (Motor stüdyosu) ================= */
+let ENG=null,engRoot=null,carEng=null,bayGroup=null,LABF=null,LABG=null;
 const ghostMat=new THREE.MeshStandardMaterial({color:0x8fa0b0,transparent:true,opacity:0.1,depthWrite:false,roughness:0.6});
+const ENG_POS={x:1.60,y:0.42,z:0.12}; // crankshaft centre in car coordinates (measured against the engine bay of the body)
 function buildLab(){
   if(!window.AstraEngine)return;
-  ENG=AstraEngine.build(THREE);engRoot=new THREE.Group();engRoot.add(ENG.root);engRoot.position.set(0,0.75,0);engRoot.visible=false;scene.add(engRoot);
-  ENG.parts.forEach((p,i)=>{p.i=i+1;p.obj.traverse(m=>{if(m.isMesh)m.userData.orig=m.material;});});
+  ENG=AstraEngine.build(THREE);
+  engRoot=new THREE.Group();engRoot.position.set(0,0.75,0);engRoot.visible=false;scene.add(engRoot);
+  carEng=new THREE.Group();carEng.position.set(ENG_POS.x,ENG_POS.y,ENG_POS.z);carEng.rotation.y=-Math.PI/2;carRoot.add(carEng); // engine +x (timing end) → car right, engine +z (intake) → car rear
+  carEng.add(ENG.root);
   // workshop engine stand: holds the engine by the gearbox-end flange, so the underside stays free for the exploded view
   const st=new THREE.Group();const sm=new THREE.MeshStandardMaterial({color:0xb3261e,metalness:0.4,roughness:0.45}),dk=new THREE.MeshStandardMaterial({color:0x22272e,metalness:0.6,roughness:0.4});
   const add=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;st.add(o);return o;};
-  const H=0.75,X=-0.82;
-  add(new THREE.BoxGeometry(0.05,H,0.05),sm,X,H/2,0);
-  add(new THREE.BoxGeometry(0.05,0.05,0.7),sm,X,0.03,0);
-  add(new THREE.BoxGeometry(0.5,0.05,0.05),sm,X+0.22,0.03,0);
+  const H=0.75,X=-1.05;
+  add(new THREE.BoxGeometry(0.05,H,0.05),sm,X,H/2,0);add(new THREE.BoxGeometry(0.05,0.05,0.7),sm,X,0.03,0);add(new THREE.BoxGeometry(0.5,0.05,0.05),sm,X+0.22,0.03,0);
   [[X,0.01,0.33],[X,0.01,-0.33],[X+0.45,0.01,0]].forEach(([x,y,z])=>add(new THREE.CylinderGeometry(0.025,0.025,0.02,16),dk,x,y,z));
   const arm=add(new THREE.CylinderGeometry(0.022,0.022,0.40,16),dk,X+0.2,H,0);arm.rotation.z=Math.PI/2;
-  const plate=add(new THREE.CylinderGeometry(0.05,0.05,0.012,24),sm,X+0.40,H,0);plate.rotation.z=Math.PI/2;
-  [[0.1,0.1],[0.1,-0.1],[-0.1,0.1],[-0.1,-0.1]].forEach(([y,z])=>{const r=add(new THREE.BoxGeometry(0.012,0.016,0.016),dk,X+0.42,H+y*0.5,z*0.5);r.scale.y=1;
-    const l=add(new THREE.CylinderGeometry(0.006,0.006,Math.hypot(0.13,0.14)),dk,X+0.44,H+y*0.95,z*0.95);l.rotation.x=Math.atan2(z,y)*0;});
+  const plate=add(new THREE.CylinderGeometry(0.06,0.06,0.012,24),sm,X+0.40,H,0);plate.rotation.z=Math.PI/2;
   scene.add(st);st.visible=false;engRoot.userData.stand=st;
 }
-buildLab();
-function labPartHTML(p){return '<span class="k">Ne işe yarar</span>'+p.d+'<span class="k">Neye bağlı</span>'+p.c+'<span class="k">Teknik bilgi</span>'+p.t;}
-function labFocus(p){
-  LABF={p,iso:false};
-  ENG.parts.forEach(q=>q.obj.traverse(m=>{if(m.isMesh){m.material=q===p?m.userData.orig:ghostMat;m.visible=true;}}));
-  labFly(p,3.4);labCard();renderSub();
+function finishParts(){ENG.parts.forEach((p,i)=>{p.i=i+1;p.obj.traverse(m=>{if(m.isMesh)m.userData.orig=m.material;});});}
+function placeEngine(){if(!ENG)return;const tgt=mode==='lab'?engRoot:carEng;if(ENG.root.parent!==tgt)tgt.add(ENG.root);}
+buildLab();finishParts();
+const partShown=q=>!(q.car&&mode==='lab');
+function partsForUI(){return ENG.parts.filter(q=>partShown(q)&&(!LABG||q.grp===LABG));}
+
+/* ---------- engine-bay items around the engine (car coordinates) ---------- */
+function buildBay(){
+  if(!ENG)return;bayGroup=new THREE.Group();carRoot.add(bayGroup);carEng.updateMatrixWorld(true);
+  const E=ENG.M,W=(x,y,z)=>carEng.localToWorld(new THREE.Vector3(x,y,z));
+  const add=(o,info,grp)=>{o.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;}});bayGroup.add(o);info.obj=o;info.grp=grp||'Motor bölümü';info.car=true;info.base=o.position.clone();info.ex=new THREE.Vector3();o.userData.epart=info;ENG.parts.push(info);};
+  const msh=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);if(x!==undefined)o.position.set(x,y,z);return o;};
+  const tb=(pts,r,m)=>new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),40,r,10,false),m);
+  const body=paintMat||E.plastic, white=new THREE.MeshPhysicalMaterial({color:0xece6da,roughness:0.35,transparent:true,opacity:0.92});
+  const {FX,WR,TRACK}=GEO;
+  // radiator, condenser, fan
+  {const g=new THREE.Group();g.add(msh(rbox(0.035,0.40,1.10,0.01),E.ironDark,2.03,0.47,0));for(let k=0;k<22;k++)g.add(msh(new THREE.BoxGeometry(0.036,0.39,0.004),E.alu,2.03,0.47,-0.5+k*0.048));
+    g.add(msh(rbox(0.03,0.44,0.12,0.01),E.plastic,2.03,0.47,-0.6));g.add(msh(rbox(0.03,0.44,0.12,0.01),E.plastic,2.03,0.47,0.6));
+    g.add(msh(rbox(0.04,0.42,0.75,0.02),E.plastic,1.99,0.47,-0.1));const f=msh(new THREE.CylinderGeometry(0.17,0.17,0.03,32,1,true),E.plastic,1.975,0.47,-0.12);f.rotation.z=Math.PI/2;g.add(f);
+    for(let k=0;k<7;k++){const b=msh(new THREE.BoxGeometry(0.006,0.15,0.05),E.plastic2,1.97,0.47,-0.12);b.geometry.translate(0,0.085,0);b.rotation.x=k/7*Math.PI*2;g.add(b);}
+    add(g,{id:'radyator',n:'Radyatör, klima kondenseri ve fan',d:'Radyatör motordan gelen sıcak suyu havayla soğutur; önündeki kondenser klima gazını soğutur. Elektrikli fan araç dururken ya da yavaşken havayı radyatörden çeker.',c:'Üst hortum termostattan sıcak suyu getirir, alt hortum soğumuş suyu su pompasına döndürür. Fan, ECU’nun sıcaklık bilgisine göre çalışır.',t:'Alüminyum petek. Fan ≈ 100 °C civarında devreye girer. Kondenser önde, radyatörün hemen önünde.'});}
+  // front cross member with bonnet latch
+  {const g=new THREE.Group();g.add(msh(rbox(0.07,0.05,1.25,0.01),E.plastic2,2.06,0.735,0));g.add(msh(rbox(0.05,0.07,0.08,0.01),E.alu,2.07,0.72,0.0));
+    add(g,{id:'travers',n:'Ön travers ve kaput kilidi',d:'Radyatörü, farları ve kaput kilidini taşıyan ön traverstir.',c:'İki yanda çamurluk iç saclarına bağlı; ortasında kaput kilidi ve emniyet mandalı.',t:'Kaput iki kademede açılır: içeriden çekilen kol, sonra ortadaki emniyet mandalı.'});}
+  // scuttle / wiper cowl + bulkhead
+  {const g=new THREE.Group();const cw=msh(rbox(0.16,0.02,1.25,0.01),E.plastic,1.25,0.83,0);cw.rotation.z=-0.18;g.add(cw);
+    for(let k=0;k<26;k++){const s=msh(new THREE.BoxGeometry(0.1,0.004,0.012),E.ironDark,1.26,0.842,-0.55+k*0.044);s.rotation.z=-0.18;g.add(s);}
+    g.add(msh(rbox(0.02,0.42,1.3,0.01),E.ironDark,1.17,0.58,0));
+    add(g,{id:'kaporta',n:'Silecek kaportası ve torpido sacı',d:'Ön camın dibindeki ızgaralı plastik kapak, kabin havalandırmasının hava girişini ve silecek mekanizmasını örter. Arkasındaki sac motor bölümünü kabinden ayırır.',c:'Ön camın alt kenarı ile motor bölümü arasında; altında silecek motoru ve polen filtresi bulunur.',t:'Izgaralar tıkanırsa su kabine sızabilir; polen filtresi bu bölümden değiştirilir.'});}
+  // strut towers
+  {const g=new THREE.Group();[-1,1].forEach(s=>{g.add(msh(new THREE.CylinderGeometry(0.075,0.1,0.1,32),body,FX,0.70,s*0.6));g.add(msh(new THREE.CylinderGeometry(0.03,0.03,0.02,16),E.ironDark,FX,0.76,s*0.6));
+      for(let k=0;k<3;k++){const a=k/3*Math.PI*2;g.add(msh(new THREE.CylinderGeometry(0.008,0.008,0.02,6),E.bolt,FX+Math.cos(a)*0.055,0.755,s*0.6+Math.sin(a)*0.055));}});
+    add(g,{id:'kule',n:'Amortisör kuleleri',d:'Ön MacPherson amortisörlerin üst yataklarının bağlandığı gövde kuleleri.',c:'Sol ve sağ iç çamurluk üstünde; ortadaki somun amortisör milini, 3 somun üst yatağı tutar.',t:'Üst yatak (rulman) aşınırsa direksiyon çevrilirken tıkırtı gelir.'});}
+  // battery + tray
+  {const g=new THREE.Group();g.add(msh(rbox(0.175,0.19,0.25,0.01),E.plastic,1.72,0.66,-0.45));g.add(msh(rbox(0.177,0.04,0.252,0.008),E.blue,1.72,0.74,-0.45));
+    g.add(msh(new THREE.CylinderGeometry(0.011,0.011,0.022,12),E.red,1.79,0.765,-0.36));g.add(msh(new THREE.CylinderGeometry(0.011,0.011,0.022,12),E.plastic2,1.79,0.765,-0.54));
+    g.add(msh(rbox(0.2,0.03,0.28,0.01),E.plastic2,1.72,0.55,-0.45));
+    add(g,{id:'aku',n:'Akü (12 V)',d:'Marş motorunu çevirmek ve motor çalışmıyorken elektrikli sistemleri beslemek için gereken elektriği depolar.',c:'Motor bölümünün sol önünde, şanzımanın üstündeki tablada. Artı kutbu sigorta kutusuna ve marş motoruna, eksi kutbu gövdeye bağlı.',t:'1.6 benzinli için tipik olarak 60 Ah. Start-stop’suz versiyonda standart kurşun-asit akü.'});}
+  {const g=new THREE.Group();g.add(msh(rbox(0.22,0.11,0.12,0.012),E.plastic,1.66,0.68,-0.665));g.add(msh(rbox(0.2,0.012,0.1,0.006),E.plastic2,1.66,0.738,-0.665));
+    add(g,{id:'sigorta',n:'Motor bölümü sigorta kutusu',d:'Fan, ECU, yakıt pompası, farlar gibi yüksek akımlı devrelerin sigortalarını ve rölelerini barındırır.',c:'Akünün sol yanında; ana besleme doğrudan akünün artı kutbundan gelir.',t:'Kapağın iç yüzünde sigorta yerleşim şeması bulunur.'});}
+  // air filter box + intake hose (no turbo: filter → throttle body)
+  const tbW=W(0.33,0.10,0.18);
+  {const g=new THREE.Group();g.add(msh(rbox(0.26,0.15,0.24,0.03),E.plastic,1.84,0.66,0.47));g.add(msh(rbox(0.262,0.02,0.242,0.02),E.plastic2,1.84,0.70,0.47));
+    g.add(tb([new THREE.Vector3(1.96,0.66,0.52),new THREE.Vector3(2.0,0.67,0.55),new THREE.Vector3(2.02,0.7,0.6)],0.035,E.plastic));
+    add(g,{id:'havafiltre',n:'Hava filtresi kutusu',d:'Motorun emdiği havayı içindeki kâğıt filtreyle tozdan ve kirden arındırır.',c:'Motor bölümünün sağ ön köşesinde. Ön ağzı havayı alır, çıkışından körüklü hortumla gaz kelebeğine gider.',t:'Panel tipi kuru filtre; ≈ 30.000 km’de değişir. Bu motor atmosferik (turbosuz): filtreden çıkan hava doğrudan gaz kelebeğine gider.'},'Emme sistemi');
+    const h=new THREE.Group();h.add(tb([new THREE.Vector3(1.74,0.64,0.42),new THREE.Vector3(1.66,0.6,0.43),new THREE.Vector3(tbW.x+0.03,tbW.y+0.02,tbW.z+0.08),tbW.clone().add(new THREE.Vector3(0,0,0.03))],0.034,E.rubber));
+    for(let k=0;k<8;k++){const r=new THREE.Mesh(new THREE.TorusGeometry(0.036,0.004,6,20),E.rubber);const t=k/8;r.position.lerpVectors(new THREE.Vector3(1.70,0.62,0.425),new THREE.Vector3(tbW.x+0.03,tbW.y+0.02,tbW.z+0.08),t);r.lookAt(tbW);h.add(r);}
+    add(h,{id:'emishortum',n:'Emiş hortumu (körüklü)',d:'Hava filtresinden çıkan temiz havayı gaz kelebeğine taşır.',c:'Hava filtresi kutusu çıkışı → motorun sağ ucundaki gaz kelebeği.',t:'Körüklü yapısı motorun titreşimini ve sallanmasını karşılar. Yırtılırsa ölçülmeyen hava girer, rölanti bozulur.'},'Emme sistemi');}
+  // brake servo + master cylinder + fluid reservoir
+  {const g=new THREE.Group();const sv=msh(new THREE.CylinderGeometry(0.12,0.12,0.09,40),E.ironDark,1.23,0.6,-0.38);sv.rotation.z=Math.PI/2;g.add(sv);
+    const mc=msh(new THREE.CylinderGeometry(0.03,0.03,0.13,20),E.alu,1.34,0.6,-0.38);mc.rotation.z=Math.PI/2;g.add(mc);
+    g.add(msh(rbox(0.08,0.06,0.09,0.015),white,1.34,0.665,-0.38));g.add(msh(new THREE.CylinderGeometry(0.022,0.022,0.02,20),E.yellow,1.34,0.705,-0.38));
+    add(g,{id:'fren',n:'Fren servosu, ana merkez ve hidrolik haznesi',d:'Servo, motorun emme vakumuyla pedal kuvvetini artırır; ana merkez pedal kuvvetini hidrolik basınca çevirip 4 tekerleğin frenine gönderir. Hazne fren hidroliğini depolar.',c:'Torpido sacının sol tarafında, fren pedalının tam önünde. Hazne aynı zamanda hidrolik debriyajı besler.',t:'DOT 4 hidrolik, 2 yılda bir değişim. ABS/ESP modülü ana merkezle tekerlekler arasındadır.'});}
+  // coolant expansion tank
+  const thW=W(-0.215-0.06,0.197+0.075,0.02);
+  {const g=new THREE.Group();g.add(msh(rbox(0.12,0.11,0.15,0.02),white,1.33,0.71,-0.17));const cap=msh(new THREE.CylinderGeometry(0.03,0.03,0.025,24),E.plastic,1.34,0.775,-0.15);g.add(cap);
+    g.add(tb([new THREE.Vector3(1.33,0.66,-0.12),new THREE.Vector3(1.38,0.6,-0.1),thW],0.007,E.rubber));
+    add(g,{id:'genlesme',n:'Soğutma suyu genleşme kabı',d:'Isınan soğutma suyu genleşince fazlası bu kaba dolar, soğuyunca geri çekilir. Su seviyesi buradan kontrol edilir.',c:'Motor bölümünün sol arkasında, fren hidroliği haznesinin yanında; ince hortumlarla motora ve radyatöre bağlı.',t:'Motor soğukken seviye MIN–MAX arasında olmalı. Kapağı sıcakken açılmaz (sistem ≈ 1,4 bar basınçlı). İçinde yağ görülüyorsa yağ soğutucusu kaçırıyordur.'},'Soğutma');}
+  // radiator hoses
+  {const g=new THREE.Group();const up=W(-0.215-0.12,0.197+0.05,-0.12),lo=W(0.32,0.13,0.08);
+    g.add(tb([up,up.clone().add(new THREE.Vector3(0.12,0.02,-0.05)),new THREE.Vector3(1.96,0.63,-0.42),new THREE.Vector3(2.01,0.62,-0.45)],0.018,E.rubber));
+    g.add(tb([lo,lo.clone().add(new THREE.Vector3(0.1,-0.12,0.05)),new THREE.Vector3(1.94,0.32,0.38),new THREE.Vector3(2.01,0.33,0.42)],0.018,E.rubber));
+    add(g,{id:'radhortum',n:'Radyatör hortumları',d:'Üst hortum motordan çıkan sıcak suyu radyatöre götürür, alt hortum soğumuş suyu motora geri getirir.',c:'Üst: termostat gövdesi → radyatör sol üst. Alt: radyatör sağ alt → su pompası.',t:'Kauçuk hortumlar, kelepçeli. Motor sıcakken üst hortum serttir; yumuşaksa su seviyesi düşük olabilir.'},'Soğutma');}
+  // engine undertray (closes the bay from below)
+  {const g=new THREE.Group();g.add(msh(rbox(0.85,0.012,1.3,0.02),E.plastic,1.64,0.16,0));
+    add(g,{id:'altmuhafaza',n:'Motor alt muhafazası',d:'Motor bölümünü alttan kapatan plastik muhafaza. Motoru yoldan sıçrayan su ve taşlardan korur, aerodinamiğe yardım eder.',c:'Ön tampona ve ön traverse vidalı; yağ değişiminde boşaltma tapasına ulaşmak için kapakçığı vardır.',t:'Plastik. Rampaya sürterek kırılabilir.'});}
+  // washer fluid filler
+  {const g=new THREE.Group();g.add(msh(new THREE.CylinderGeometry(0.028,0.028,0.03,20),E.blue,1.95,0.7,0.63));g.add(msh(new THREE.CylinderGeometry(0.02,0.02,0.1,16),E.plastic2,1.95,0.64,0.63));
+    add(g,{id:'camsuyu',n:'Cam suyu deposu kapağı',d:'Ön cam yıkama sıvısının doldurulduğu mavi kapak.',c:'Motor bölümünün sağ ön köşesinde; depo çamurluğun içinde, pompa ön cam fıskiyelerine gider.',t:'Kışın antifrizli cam suyu kullanılmalı.'});}
+  // driveshafts from the differential to the front hubs
+  {const g=new THREE.Group();const dl=W(-0.215-0.012-0.40,-0.08,0.12),dr=W(-0.215-0.012-0.16,-0.08,0.12);
+    const shaft=(a,b)=>{g.add(tb([a,a.clone().lerp(b,0.5),b],0.014,E.forged));[a,b].forEach(p=>{const bt=new THREE.Mesh(new THREE.SphereGeometry(0.04,16,12),E.rubber);bt.position.copy(p);bt.scale.set(1,1,1.3);g.add(bt);});};
+    shaft(dl,new THREE.Vector3(FX,WR,-TRACK+0.12));
+    const mid=W(0.12,-0.08,0.12);g.add(tb([dr,dr.clone().lerp(mid,0.5),mid],0.016,E.forged));shaft(mid,new THREE.Vector3(FX,WR,TRACK-0.12));
+    add(g,{id:'aks',n:'Aks milleri',d:'Diferansiyelden çıkan gücü ön tekerleklere iletir. Uçlarındaki homokinetik (CV) mafsallar, direksiyon çevrilirken ve süspansiyon çalışırken dönmeyi kesintisiz aktarır.',c:'Şanzımanın diferansiyel çıkışları → sol ve sağ ön tekerlek göbekleri. Sağ taraf, boyları eşitlemek için ara milli.',t:'Körükler yırtılırsa gres kaçar ve mafsal aşınır: dönüşlerde “tık tık” sesi yapar.'},'Güç aktarma');}
+  finishParts();
 }
-function labFly(p,k){const cur=p.obj.position.clone();p.obj.position.copy(p.base).addScaledVector(p.ex,T.labEx);p.obj.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(p.obj);p.obj.position.copy(cur);p.obj.updateMatrixWorld(true);const c=b.getCenter(new THREE.Vector3()),r=b.getSize(new THREE.Vector3()).length()/2;
-  const dir=camera.position.clone().sub(controls.target);if(dir.lengthSq()<1e-6)dir.set(1,0.7,1);dir.normalize();
-  const dist=Math.max(0.18,r*k);const t1=c.clone();
+
+/* ---------- part focus / isolation (works in the car and on the stand) ---------- */
+function labPartHTML(p){return '<span class="k">Ne işe yarar</span>'+p.d+'<span class="k">Neye bağlı</span>'+p.c+'<span class="k">Teknik bilgi</span>'+p.t;}
+function applyLook(){if(!ENG)return;ENG.parts.forEach(q=>q.obj.traverse(m=>{if(!m.isMesh)return;const sel=LABF&&LABF.p===q;m.material=(!LABF||sel)?m.userData.orig:ghostMat;m.visible=partShown(q)&&(!LABF||!LABF.iso||sel);}));}
+function labFocus(p){LABF={p,iso:false};applyLook();labFly(p,3.4);labCard();renderSub();}
+function labFly(p,k){const cur=p.obj.position.clone();p.obj.position.copy(p.base).addScaledVector(p.ex,mode==='lab'?T.labEx:0);p.obj.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(p.obj);p.obj.position.copy(cur);p.obj.updateMatrixWorld(true);const c=b.getCenter(new THREE.Vector3()),r=b.getSize(new THREE.Vector3()).length()/2;
+  const dir=camera.position.clone().sub(controls.target);if(dir.lengthSq()<1e-6)dir.set(1,0.7,1);dir.normalize();if(mode==='eng'&&dir.y<0.35){dir.y=0.35;dir.normalize();}
+  const dist=Math.max(0.2,r*k);const t1=c.clone();
   if(stage.clientWidth<760){const up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);t1.addScaledVector(up,dist*0.2);} // keep the part below the info card on phones
   camAnim={s0:performance.now(),t:0,d:0.8,p0:camera.position.clone(),t0:controls.target.clone(),p1:t1.clone().addScaledVector(dir,dist),t1};}
-function labIso(){if(!LABF)return;LABF.iso=!LABF.iso;ENG.parts.forEach(q=>q.obj.traverse(m=>{if(m.isMesh)m.visible=!LABF.iso||q===LABF.p;}));if(LABF.iso)labFly(LABF.p,2.6);labCard();}
-function labUnfocus(silent){if(!ENG)return;LABF=null;ENG.parts.forEach(q=>q.obj.traverse(m=>{if(m.isMesh){m.material=m.userData.orig;m.visible=true;}}));if(!silent){hideCard();flyTo('lab');renderSub();}}
-function labCard(){const p=LABF.p;$('#cCat').textContent='Motor · '+p.grp+' · '+p.i;$('#cName').textContent=p.n;$('#cDesc').innerHTML=labPartHTML(p);$('#card').classList.add('show');$('#hint').style.opacity=0;
-  const a=$('#cActs');a.innerHTML='';const list=ENG.parts,k=list.indexOf(p);
-  const B=(t,f,c)=>{const b=document.createElement('button');if(c)b.className=c;b.textContent=t;b.onclick=f;a.appendChild(b);};
+function labIso(){if(!LABF)return;LABF.iso=!LABF.iso;applyLook();if(LABF.iso)labFly(LABF.p,2.6);labCard();}
+function labUnfocus(silent){if(!ENG)return;LABF=null;applyLook();if(!silent){hideCard();flyTo(mode);renderSub();}}
+function labCard(){const p=LABF.p;const list=partsForUI();const k=Math.max(0,list.indexOf(p));
+  $('#cCat').textContent=p.grp+' · '+(k+1)+'/'+list.length;$('#cName').textContent=p.n;$('#cDesc').innerHTML=labPartHTML(p);$('#card').classList.add('show');$('#hint').style.opacity=0;
+  const a=$('#cActs');a.innerHTML='';const B=(t,f,c)=>{const b=document.createElement('button');if(c)b.className=c;b.textContent=t;b.onclick=f;a.appendChild(b);};
   B(LABF.iso?'Hepsini göster':'Ayrı incele',labIso,'pri');B('‹ Önceki',()=>labFocus(list[(k-1+list.length)%list.length]));B('Sonraki ›',()=>labFocus(list[(k+1)%list.length]));B('Geri',()=>labUnfocus());}
 function renderLabSub(s){
   if(!ENG){s.innerHTML='<div class="tg">Motor modeli yüklenemedi</div>';return;}
-  const sl=document.createElement('div');sl.className='slider';sl.innerHTML='<label for="lex">Parçala</label><input id="lex" type="range" min="0" max="1" step="0.01" value="'+T.labEx+'">';
-  sl.querySelector('input').oninput=e=>{T.labEx=+e.target.value;};s.appendChild(sl);
+  if(mode==='lab'){const sl=document.createElement('div');sl.className='slider';sl.innerHTML='<label for="lex">Parçala</label><input id="lex" type="range" min="0" max="1" step="0.01" value="'+T.labEx+'">';
+    sl.querySelector('input').oninput=e=>{T.labEx=+e.target.value;};s.appendChild(sl);}
+  else{const box=document.createElement('div');box.className='toggles';box.appendChild(tg('Kaput',T.hood>0.5,()=>{T.hood=T.hood>0.5?0:1;renderSub();}));s.appendChild(box);}
+  const groups=[...new Set(ENG.parts.filter(partShown).map(q=>q.grp))];
+  const gr=document.createElement('div');gr.className='hsrail';
+  [null,...groups].forEach(g=>{const b=document.createElement('button');b.className='tg'+(LABG===g?' on':'');b.innerHTML='<i></i>'+(g||'Tümü');b.onclick=()=>{LABG=g;renderSub();};gr.appendChild(b);});
+  s.appendChild(gr);
   const rail=document.createElement('div');rail.className='hsrail';
-  ENG.parts.forEach(p=>{const b=document.createElement('button');b.className='hs'+(LABF&&LABF.p===p?' on':'');b.innerHTML='<b>'+p.i+'</b>'+p.n;b.onclick=()=>labFocus(p);rail.appendChild(b);});
+  partsForUI().forEach((p,i)=>{const b=document.createElement('button');b.className='hs'+(LABF&&LABF.p===p?' on':'');b.innerHTML='<b>'+(i+1)+'</b>'+p.n;b.onclick=()=>labFocus(p);rail.appendChild(b);});
   s.appendChild(rail);
 }
 
@@ -717,9 +784,9 @@ renderer.domElement.addEventListener('pointerup',e=>{
   if(e.pointerType==='touch'){const now=performance.now();if(lastTap&&now-lastTap.t<320&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<30){lastTap=null;retarget(pickPoint(e.clientX,e.clientY));hideCard();return;}lastTap={t:now,x:e.clientX,y:e.clientY};}
   const r=renderer.domElement.getBoundingClientRect(),v=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   const rc=new THREE.Raycaster();rc.setFromCamera(v,camera);
-  if(mode==='lab'&&engRoot){const hh=rc.intersectObject(ENG.root,true).filter(h=>isVisible(h.object)&&h.object.material!==ghostMat);
+  if((mode==='lab'||mode==='eng')&&ENG){const hh=rc.intersectObjects(bayGroup&&mode==='eng'?[ENG.root,bayGroup]:[ENG.root],true).filter(h=>isVisible(h.object)&&h.object.material!==ghostMat);
     if(hh.length){let o=hh[0].object;while(o&&!o.userData.epart)o=o.parent;if(o){labFocus(o.userData.epart);return;}}
-    if(LABF)labUnfocus();return;}
+    if(mode==='lab'){if(LABF)labUnfocus();return;}}
   const hg=hsGroupForMode();
   if(hg&&!(FOCUS&&FOCUS.iso)){const sh=rc.intersectObjects(HS.filter(h=>h.g===hg).map(h=>h.sprite),false)[0];if(sh){focusHS(sh.object.userData.hs);return;}}
   const hits=rc.intersectObject(carRoot,true).filter(h=>isVisible(h.object)&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.3)&&!(cutY()<h.point.y&&h.object.material.clippingPlanes&&h.object.material.clippingPlanes.includes(cutPlane)));
@@ -767,9 +834,8 @@ function tick(){
   if(interiorAdds)interiorAdds.visible=bodyVis;
   if(window.__chs)window.__chs.visible=(mode==='chs'||mode==='xr'||S.xray>0.05||S.bodyHidden>0.05);
   S.labEx=damp(S.labEx,T.labEx,4);
-  const lab=mode==='lab';carRoot.visible=!lab;if(engRoot){engRoot.visible=lab;engRoot.userData.stand.visible=lab&&!(LABF&&LABF.iso);if(lab){ENG.parts.forEach(p=>p.obj.position.copy(p.base).addScaledVector(p.ex,S.labEx));}}
+  const lab=mode==='lab';carRoot.visible=!lab;if(engRoot){engRoot.visible=lab;engRoot.userData.stand.visible=lab&&!(LABF&&LABF.iso);ENG.parts.forEach(p=>{if(!p.car)p.obj.position.copy(p.base).addScaledVector(p.ex,lab?S.labEx:0);});}
   const hgm=hsGroupForMode();HS.forEach(h=>{h.sprite.visible=!!hgm&&h.g===hgm&&(!FOCUS||(!FOCUS.iso)||FOCUS.h===h)&&!(FOCUS&&FOCUS.iso);});
-  if(engineScan)engineScan.visible=S.hood>0.05||S.explode>0.05||S.xray>0.05||S.bodyHidden>0.05;
   const iso=!!(FOCUS&&FOCUS.iso);[floor,disk,ring,contact].forEach(o=>o.visible=!iso);
   cabinLight.intensity=damp(cabinLight.intensity,mode==='int'?3.2:mode==='drv'?2.0:0,3);
   if(camAnim){camAnim.t=(performance.now()-camAnim.s0)/1000/camAnim.d;const e=ease(clamp(camAnim.t,0,1));camera.position.lerpVectors(camAnim.p0,camAnim.p1,e);controls.target.lerpVectors(camAnim.t0,camAnim.t1,e);if(camAnim.t>=1)camAnim=null;}
@@ -782,7 +848,7 @@ window.addEventListener('resize',resize);resize();
 if(stage.clientWidth<stage.clientHeight){Object.entries(cams).forEach(([k,c])=>{if(k==='drv')return;const F={ext:1.2,eng:1.35,int:1.5}[k]||1.5;const p=new THREE.Vector3(...c.p),t=new THREE.Vector3(...c.t);p.sub(t).multiplyScalar(F).add(t);c.p=p.toArray();});camera.position.set(...cams.ext.p);}
 renderRail();renderSub();tick();
 function finish(){renderSub();$('#loader').style.opacity=0;setTimeout(()=>{const l=$('#loader');if(l)l.remove();},500);setTimeout(()=>{$('#hint').style.opacity=0;},7000);window.READY=1;}
-window.__astra={setMode,S,T,camera,controls,GEO,HS,focusHS,isolateHS,get ENG(){return ENG;},labFocus,labIso,get hood(){return hood;},get eng(){return engineScan;}};
+window.__astra={setMode,S,T,camera,controls,GEO,HS,focusHS,isolateHS,get ENG(){return ENG;},labFocus,labIso,get hood(){return hood;}};
 })();
 </script>
 </body>
