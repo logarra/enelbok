@@ -18,3 +18,12 @@
 - Motor bölümü: "Opel Astra J 2013 1.4T hb engine scan", hakane — Sketchfab, CC BY 4.0
   https://sketchfab.com/3d-models/opel-astra-j-2013-14t-hb-engine-scan-d5248f42af86454fbc6619ed66424e35
   (Küçültüldü, sıkıştırıldı ve araca yerleştirildi.)
+
+
+---
+
+# Işık Arşivi (`isiklar/`)
+
+Aputure (+ amaran), Nanlite (+ Nanlux) ve Godox (+ Knowled, Litemons) sürekli ışıklarının 2011'den 2026'ya kronolojik, etkileşimli arşivi. Marka sekmeleri, tip/renk filtreleri, arama, yıl cetveli, detay kartı ve 3 modele kadar karşılaştırma. Mobil uyumlu, kütüphanesiz (vanilla JS).
+
+`isiklar/index.html` dosyasını aç; veriler `isiklar/data.js` içinde (yeni ürün eklemek için bu dosyaya bir satır eklemek yeterli). Değerler yaklaşıktır.
