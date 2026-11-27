@@ -129,15 +129,28 @@ Not: Astra J’de direksiyon pompası elektro-hidrolik olduğu için kayışta d
 | 2 aks mili | Gücü ön tekerleklere iletir | ✅ |
 | Motor takozları | Motoru gövdeye bağlar, titreşimi süzer | ✅ |
 
-## Doğrulanamayanlar
+## Fotoğraflarla doğrulanan yerleşim (kullanıcının gönderdiği 8 fotoğraf)
 
-Wikimedia otomatik indirmeleri engellediği için referans fotoğrafları alınamadı. Şu konumlar fotoğrafla teyit edilmeli:
+Fotoğraflar: Astra J 1.6 motor bölümü (önden, 3 adet), A16XER sökülmüş motor (triger ucundan 2, önden 1), egzoz manifoldu yakın çekim, yağ soğutucusu değişimi.
 
-1. Emme manifoldu ön tarafta mı (radyatör), arka tarafta mı (kabin)? Egzoz manifoldu tam karşı tarafta.
-2. Hava filtresi kutusunun yeri.
-3. Alternatör ve klima kompresörünün sağ uçtaki yükseklikleri (üst / alt).
-4. Termostat gövdesinin hangi uçta olduğu.
-5. Yağ filtresi gövdesinin yeri.
+| Konu | Sonuç | Kanıt |
+|---|---|---|
+| Egzoz manifoldu | **Ön tarafta** (radyatöre bakar), üstünde nervürlü alüminyum ısı kalkanı, katalizör hemen altında | Önden çekilmiş 3 fotoğraf + yakın çekim |
+| Emme manifoldu | **Arka tarafta** (torpido sacı tarafı); enjektör hattı arkada üstte | Önden çekimler (LPG enjektörleri arkada) |
+| Gaz kelebeği | Motorun **sağ ucunda** (triger tarafı), önde ve alçakta; büyük körüklü hortum buraya bağlanıyor | Sökülmüş motor fotoğrafları |
+| Hava filtresi kutusu | Motor bölümünün **sağ ön** köşesi | Önden çekimler |
+| Triger kapağı | Sağ uçta büyük siyah plastik kapak; üstünde alüminyum motor takozu braketi | Sökülmüş motor |
+| V kayışı | Sağ uçta: alternatör **önde-altta**, klima kompresörü **arkada-altta**, krank kasnağı ortada-altta, su pompası kasnağı ve gergi ortada | Sökülmüş motor (2 fotoğraf) |
+| Yağ çubuğu | Sarı saplı, **önde**, egzoz ısı kalkanının sağ yanında | Önden çekimler |
+| Yağ doldurma kapağı | Külbütör kapağının **sol ön** ucunda (şanzıman tarafı) | Yakın çekim, Vauxhall motor |
+| Termostat gövdesi | Silindir kapağının **sol ucunda** (şanzıman tarafı), hortumlarla | Vauxhall motor fotoğrafı |
+| Külbütör kapağı | Üstte ortada “ECOTEC” yazılı kapak; bobin modülü bu kapağın ortasında | Tüm fotoğraflar |
+| Akü + sigorta kutusu | **Sol ön** | Önden çekimler |
+| Fren hidroliği haznesi | Sol arkada, ön camın dibine yakın | Önden çekimler |
+| Soğutma suyu genleşme kabı | Sol arkada, hidrolik haznesinin yanında | Önden çekimler |
+| Yağ soğutucusu + filtre gövdesi | Alüminyum gövde, kartuş filtre kapaklı; motorun arka tarafında, emme manifoldunun altında (değişim için manifold sökülüyor) | Yağ soğutucusu değişim fotoğrafı |
+
+Not: Fotoğraflardaki bazı araçlarda sonradan takılmış LPG enjektörleri var (arka üstteki beyaz soketli enjektörler). Fabrika aracında bunlar yoktur, modele eklenmeyecek.
 
 ## Kaynaklar
 

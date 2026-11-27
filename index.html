@@ -64,6 +64,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .card .cat{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
 .card h3{font-family:var(--display);font-size:1.35rem;margin:.15rem 0 .35rem;letter-spacing:.02em;text-wrap:balance}
 .card p{margin:0;font-size:.88rem;line-height:1.45;color:#c4ccd5}
+.card p .k{display:block;font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin:.55rem 0 .1rem}
+.card{max-height:calc(100% - 330px);overflow-y:auto}
+@media (max-width:759px){.card{max-height:38%}}
 .card .x{position:absolute;top:8px;right:8px;border:0;background:none;width:32px;height:32px;cursor:pointer;color:var(--muted);font-size:1.2rem}
 .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.acts:empty{display:none}.acts button{flex:0 0 auto}
 .acts button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:7px 12px;font-size:.8rem;cursor:pointer}
@@ -151,6 +154,7 @@ ul.eq li span:last-child{font-family:var(--mono);font-size:.74rem;white-space:no
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/meshopt_decoder.js"></script>
+<script src="engine.js"></script>
 <script>
 (function(){
 "use strict";
@@ -230,7 +234,7 @@ const PAINTS=[
 
 /* ================= state ================= */
 const CAT={body:'Kaporta',int:'İç mekân',eng:'Motor bölümü',chs:'Şasi & süspansiyon',whl:'Tekerlek & fren',trk:'Bagaj',lgt:'Aydınlatma'};
-const S={doors:0,trunk:0,hood:0,explode:0,xray:0,cut:0,bodyHidden:0,spin:0,lights:false};
+const S={doors:0,trunk:0,hood:0,explode:0,xray:0,cut:0,bodyHidden:0,spin:0,lights:false,labEx:0};
 const T={...S};
 const parts=[]; // explode registry
 const carRoot=new THREE.Group();scene.add(carRoot);
@@ -496,13 +500,14 @@ const cams={
   chs:{p:[4.2,1.6,4.6],t:[0,0.4,0]},
   xr:{p:[4.8,2.4,4.6],t:[0,0.6,0]},
   exp:{p:[6.4,3.4,6.2],t:[0,0.9,0]},
+  lab:{p:[1.15,1.05,1.25],t:[-0.05,0.72,0]},
 };
 let camAnim=null;
 function flyTo(k,dur){const c=cams[k];camAnim={s0:performance.now(),t:0,d:dur||1.1,p0:camera.position.clone(),t0:controls.target.clone(),p1:new THREE.Vector3(...c.p),t1:new THREE.Vector3(...c.t)};
-  controls.maxPolarAngle=k==='drv'?Math.PI*0.95:Math.PI*0.58;}
+  controls.maxPolarAngle=(k==='drv'||k==='lab')?Math.PI*0.95:Math.PI*0.58;}
 const MODES=[
   {k:'ext',n:'Dış',s:'Genel görünüm'},{k:'doors',n:'Kapılar',s:'4 kapı açılır'},{k:'int',n:'İç mekân',s:'Tavan kesik'},
-  {k:'drv',n:'Sürücü',s:'Koltuktan bakış'},{k:'eng',n:'Motor',s:'Gerçek tarama'},{k:'trk',n:'Bagaj',s:'460 litre'},
+  {k:'drv',n:'Sürücü',s:'Koltuktan bakış'},{k:'eng',n:'Motor',s:'Kaput açık'},{k:'lab',n:'Motor stüdyosu',s:'Parça parça'},{k:'trk',n:'Bagaj',s:'460 litre'},
   {k:'chs',n:'Şasi',s:'Süspansiyon'},{k:'xr',n:'Röntgen',s:'Saydam kasa'},{k:'exp',n:'Parçala',s:'Patlatılmış'},
 ];
 let mode='ext';
@@ -510,12 +515,13 @@ function setMode(k){
   mode=k;
   T.doors=(k==='doors')?1:0;T.trunk=k==='trk'?1:0;T.hood=(k==='eng')?1:0;T.xray=k==='xr'?1:0;T.explode=k==='exp'?0.75:0;
   T.bodyHidden=k==='chs'?1:0;T.cut=k==='int'?1:0;
-  FOCUS=null;setIso(null);flyTo(k);renderRail();renderSub();hideCard();
+  FOCUS=null;setIso(null);labUnfocus(true);T.labEx=0;flyTo(k);renderRail();renderSub();hideCard();
 }
 function renderRail(){const r=$('#rail');r.innerHTML='';MODES.forEach(m=>{const b=document.createElement('button');b.className='chip'+(m.k===mode?' on':'');b.innerHTML='<b>'+m.n+'</b><small>'+m.s+'</small>';b.onclick=()=>setMode(m.k);r.appendChild(b);});}
 function tg(label,on,fn){const b=document.createElement('button');b.className='tg'+(on?' on':'');b.innerHTML='<i></i>'+label;b.onclick=fn;return b;}
 function renderSub(){
-  const s=$('#sub');s.innerHTML='';const box=document.createElement('div');box.className='toggles';
+  const s=$('#sub');s.innerHTML='';
+  if(mode==='lab'){renderLabSub(s);return;}const box=document.createElement('div');box.className='toggles';
   box.appendChild(tg('Kapılar',T.doors>0.5,()=>{T.doors=T.doors>0.5?0:1;renderSub();}));
   box.appendChild(tg('Bagaj',T.trunk>0.5,()=>{T.trunk=T.trunk>0.5?0:1;renderSub();}));
   box.appendChild(tg('Kaput',T.hood>0.5,()=>{T.hood=T.hood>0.5?0:1;renderSub();}));
@@ -632,10 +638,58 @@ function showHSCard(){const h=FOCUS.h;toast((h.g==='eng'?'Motor bölümü':'İç
 function renderHSRail(s){const g=hsGroupForMode();if(!g)return;const rail=document.createElement('div');rail.className='hsrail';
   HS.filter(h=>h.g===g).forEach(h=>{const b=document.createElement('button');b.className='hs'+(FOCUS&&FOCUS.h===h?' on':'');b.innerHTML='<b>'+h.i+'</b>'+h.n;b.onclick=()=>focusHS(h);rail.appendChild(b);});s.appendChild(rail);}
 
+/* ================= MOTOR STÜDYOSU: procedural A16XER, part by part ================= */
+let ENG=null,engRoot=null,LABF=null;
+const ghostMat=new THREE.MeshStandardMaterial({color:0x8fa0b0,transparent:true,opacity:0.1,depthWrite:false,roughness:0.6});
+function buildLab(){
+  if(!window.AstraEngine)return;
+  ENG=AstraEngine.build(THREE);engRoot=new THREE.Group();engRoot.add(ENG.root);engRoot.position.set(0,0.75,0);engRoot.visible=false;scene.add(engRoot);
+  ENG.parts.forEach((p,i)=>{p.i=i+1;p.obj.traverse(m=>{if(m.isMesh)m.userData.orig=m.material;});});
+  // workshop engine stand: holds the engine by the gearbox-end flange, so the underside stays free for the exploded view
+  const st=new THREE.Group();const sm=new THREE.MeshStandardMaterial({color:0xb3261e,metalness:0.4,roughness:0.45}),dk=new THREE.MeshStandardMaterial({color:0x22272e,metalness:0.6,roughness:0.4});
+  const add=(g,m,x,y,z)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;st.add(o);return o;};
+  const H=0.75,X=-0.82;
+  add(new THREE.BoxGeometry(0.05,H,0.05),sm,X,H/2,0);
+  add(new THREE.BoxGeometry(0.05,0.05,0.7),sm,X,0.03,0);
+  add(new THREE.BoxGeometry(0.5,0.05,0.05),sm,X+0.22,0.03,0);
+  [[X,0.01,0.33],[X,0.01,-0.33],[X+0.45,0.01,0]].forEach(([x,y,z])=>add(new THREE.CylinderGeometry(0.025,0.025,0.02,16),dk,x,y,z));
+  const arm=add(new THREE.CylinderGeometry(0.022,0.022,0.40,16),dk,X+0.2,H,0);arm.rotation.z=Math.PI/2;
+  const plate=add(new THREE.CylinderGeometry(0.05,0.05,0.012,24),sm,X+0.40,H,0);plate.rotation.z=Math.PI/2;
+  [[0.1,0.1],[0.1,-0.1],[-0.1,0.1],[-0.1,-0.1]].forEach(([y,z])=>{const r=add(new THREE.BoxGeometry(0.012,0.016,0.016),dk,X+0.42,H+y*0.5,z*0.5);r.scale.y=1;
+    const l=add(new THREE.CylinderGeometry(0.006,0.006,Math.hypot(0.13,0.14)),dk,X+0.44,H+y*0.95,z*0.95);l.rotation.x=Math.atan2(z,y)*0;});
+  scene.add(st);st.visible=false;engRoot.userData.stand=st;
+}
+buildLab();
+function labPartHTML(p){return '<span class="k">Ne işe yarar</span>'+p.d+'<span class="k">Neye bağlı</span>'+p.c+'<span class="k">Teknik bilgi</span>'+p.t;}
+function labFocus(p){
+  LABF={p,iso:false};
+  ENG.parts.forEach(q=>q.obj.traverse(m=>{if(m.isMesh){m.material=q===p?m.userData.orig:ghostMat;m.visible=true;}}));
+  labFly(p,3.4);labCard();renderSub();
+}
+function labFly(p,k){const cur=p.obj.position.clone();p.obj.position.copy(p.base).addScaledVector(p.ex,T.labEx);p.obj.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(p.obj);p.obj.position.copy(cur);p.obj.updateMatrixWorld(true);const c=b.getCenter(new THREE.Vector3()),r=b.getSize(new THREE.Vector3()).length()/2;
+  const dir=camera.position.clone().sub(controls.target);if(dir.lengthSq()<1e-6)dir.set(1,0.7,1);dir.normalize();
+  const dist=Math.max(0.18,r*k);const t1=c.clone();
+  if(stage.clientWidth<760){const up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);t1.addScaledVector(up,dist*0.2);} // keep the part below the info card on phones
+  camAnim={s0:performance.now(),t:0,d:0.8,p0:camera.position.clone(),t0:controls.target.clone(),p1:t1.clone().addScaledVector(dir,dist),t1};}
+function labIso(){if(!LABF)return;LABF.iso=!LABF.iso;ENG.parts.forEach(q=>q.obj.traverse(m=>{if(m.isMesh)m.visible=!LABF.iso||q===LABF.p;}));if(LABF.iso)labFly(LABF.p,2.6);labCard();}
+function labUnfocus(silent){if(!ENG)return;LABF=null;ENG.parts.forEach(q=>q.obj.traverse(m=>{if(m.isMesh){m.material=m.userData.orig;m.visible=true;}}));if(!silent){hideCard();flyTo('lab');renderSub();}}
+function labCard(){const p=LABF.p;$('#cCat').textContent='Motor · '+p.grp+' · '+p.i;$('#cName').textContent=p.n;$('#cDesc').innerHTML=labPartHTML(p);$('#card').classList.add('show');$('#hint').style.opacity=0;
+  const a=$('#cActs');a.innerHTML='';const list=ENG.parts,k=list.indexOf(p);
+  const B=(t,f,c)=>{const b=document.createElement('button');if(c)b.className=c;b.textContent=t;b.onclick=f;a.appendChild(b);};
+  B(LABF.iso?'Hepsini göster':'Ayrı incele',labIso,'pri');B('‹ Önceki',()=>labFocus(list[(k-1+list.length)%list.length]));B('Sonraki ›',()=>labFocus(list[(k+1)%list.length]));B('Geri',()=>labUnfocus());}
+function renderLabSub(s){
+  if(!ENG){s.innerHTML='<div class="tg">Motor modeli yüklenemedi</div>';return;}
+  const sl=document.createElement('div');sl.className='slider';sl.innerHTML='<label for="lex">Parçala</label><input id="lex" type="range" min="0" max="1" step="0.01" value="'+T.labEx+'">';
+  sl.querySelector('input').oninput=e=>{T.labEx=+e.target.value;};s.appendChild(sl);
+  const rail=document.createElement('div');rail.className='hsrail';
+  ENG.parts.forEach(p=>{const b=document.createElement('button');b.className='hs'+(LABF&&LABF.p===p?' on':'');b.innerHTML='<b>'+p.i+'</b>'+p.n;b.onclick=()=>labFocus(p);rail.appendChild(b);});
+  s.appendChild(rail);
+}
+
 /* ================= free camera: zoom to the point under the finger, double-tap to re-centre ================= */
 const _rcz=new THREE.Raycaster();
 function pickPoint(cx,cy){const r=renderer.domElement.getBoundingClientRect(),v=new THREE.Vector2((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1);
-  _rcz.setFromCamera(v,camera);const h=_rcz.intersectObject(carRoot,true).find(h=>isVisible(h.object)&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.3));
+  _rcz.setFromCamera(v,camera);const h=_rcz.intersectObject(mode==='lab'&&engRoot?engRoot:carRoot,true).find(h=>isVisible(h.object)&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.3));
   if(h)return h.point.clone();return _rcz.ray.at(Math.max(0.3,camera.position.distanceTo(controls.target)),new THREE.Vector3());}
 function zoomAt(P,f){ // homothety around P: P stays under the finger, view direction is kept
   camAnim=null;const d=camera.position.distanceTo(P);
@@ -653,7 +707,7 @@ renderer.domElement.addEventListener('touchend',e=>{if(e.touches.length<2)pinch=
 function retarget(P){camAnim={s0:performance.now(),t:0,d:0.6,p0:camera.position.clone(),t0:controls.target.clone(),p1:camera.position.clone().add(P.clone().sub(controls.target).multiplyScalar(0.35)),t1:P.clone()};}
 renderer.domElement.addEventListener('dblclick',e=>{retarget(pickPoint(e.clientX,e.clientY));hideCard();});
 let lastTap=null;
-$('#btnCenter').onclick=()=>{if(FOCUS){FOCUS=null;setIso(null);renderSub();}hideCard();flyTo(mode);};
+$('#btnCenter').onclick=()=>{if(LABF)labUnfocus(true);if(FOCUS){FOCUS=null;setIso(null);renderSub();}hideCard();flyTo(mode);};
 
 /* ================= picking ================= */
 let downXY=null;
@@ -663,6 +717,9 @@ renderer.domElement.addEventListener('pointerup',e=>{
   if(e.pointerType==='touch'){const now=performance.now();if(lastTap&&now-lastTap.t<320&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<30){lastTap=null;retarget(pickPoint(e.clientX,e.clientY));hideCard();return;}lastTap={t:now,x:e.clientX,y:e.clientY};}
   const r=renderer.domElement.getBoundingClientRect(),v=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
   const rc=new THREE.Raycaster();rc.setFromCamera(v,camera);
+  if(mode==='lab'&&engRoot){const hh=rc.intersectObject(ENG.root,true).filter(h=>isVisible(h.object)&&h.object.material!==ghostMat);
+    if(hh.length){let o=hh[0].object;while(o&&!o.userData.epart)o=o.parent;if(o){labFocus(o.userData.epart);return;}}
+    if(LABF)labUnfocus();return;}
   const hg=hsGroupForMode();
   if(hg&&!(FOCUS&&FOCUS.iso)){const sh=rc.intersectObjects(HS.filter(h=>h.g===hg).map(h=>h.sprite),false)[0];if(sh){focusHS(sh.object.userData.hs);return;}}
   const hits=rc.intersectObject(carRoot,true).filter(h=>isVisible(h.object)&&!(h.object.material&&h.object.material.transparent&&h.object.material.opacity<0.3)&&!(cutY()<h.point.y&&h.object.material.clippingPlanes&&h.object.material.clippingPlanes.includes(cutPlane)));
@@ -683,7 +740,7 @@ function cutY(){return cutPlane.constant;}
 function isVisible(o){while(o){if(!o.visible)return false;o=o.parent;}return true;}
 function toast(c,n,d){if(!FOCUS)$('#cActs').innerHTML='';$('#cCat').textContent=c;$('#cName').textContent=n;$('#cDesc').textContent=d;$('#card').classList.add('show');$('#hint').style.opacity=0;}
 function hideCard(){$('#card').classList.remove('show');}
-$('#cardX').onclick=()=>{if(FOCUS)unfocus();else hideCard();};
+$('#cardX').onclick=()=>{if(LABF)labUnfocus();else if(FOCUS)unfocus();else hideCard();};
 let flashT=0;const flashMats=new Map();
 function flash(o){unflash();flashT=1.2;o.traverse(m=>{if(m.isMesh&&!flashMats.has(m)){flashMats.set(m,m.material);const c=m.material.clone();if(c.emissive){c.emissive=new THREE.Color(0xf2c230);c.emissiveIntensity=0.35;}else if(c.color){c.color=c.color.clone().lerp(new THREE.Color(0xf2c230),0.4);}m.material=c;}});}
 function unflash(){flashMats.forEach((mat,m)=>{m.material.dispose();m.material=mat;});flashMats.clear();}
@@ -709,6 +766,8 @@ function tick(){
   [hood,trunk,...Object.values(DOORS)].forEach(o=>{if(o)o.visible=bodyVis;});
   if(interiorAdds)interiorAdds.visible=bodyVis;
   if(window.__chs)window.__chs.visible=(mode==='chs'||mode==='xr'||S.xray>0.05||S.bodyHidden>0.05);
+  S.labEx=damp(S.labEx,T.labEx,4);
+  const lab=mode==='lab';carRoot.visible=!lab;if(engRoot){engRoot.visible=lab;engRoot.userData.stand.visible=lab&&!(LABF&&LABF.iso);if(lab){ENG.parts.forEach(p=>p.obj.position.copy(p.base).addScaledVector(p.ex,S.labEx));}}
   const hgm=hsGroupForMode();HS.forEach(h=>{h.sprite.visible=!!hgm&&h.g===hgm&&(!FOCUS||(!FOCUS.iso)||FOCUS.h===h)&&!(FOCUS&&FOCUS.iso);});
   if(engineScan)engineScan.visible=S.hood>0.05||S.explode>0.05||S.xray>0.05||S.bodyHidden>0.05;
   const iso=!!(FOCUS&&FOCUS.iso);[floor,disk,ring,contact].forEach(o=>o.visible=!iso);
@@ -723,7 +782,7 @@ window.addEventListener('resize',resize);resize();
 if(stage.clientWidth<stage.clientHeight){Object.entries(cams).forEach(([k,c])=>{if(k==='drv')return;const F={ext:1.2,eng:1.35,int:1.5}[k]||1.5;const p=new THREE.Vector3(...c.p),t=new THREE.Vector3(...c.t);p.sub(t).multiplyScalar(F).add(t);c.p=p.toArray();});camera.position.set(...cams.ext.p);}
 renderRail();renderSub();tick();
 function finish(){renderSub();$('#loader').style.opacity=0;setTimeout(()=>{const l=$('#loader');if(l)l.remove();},500);setTimeout(()=>{$('#hint').style.opacity=0;},7000);window.READY=1;}
-window.__astra={setMode,S,T,camera,controls,GEO,HS,focusHS,isolateHS,get hood(){return hood;},get eng(){return engineScan;}};
+window.__astra={setMode,S,T,camera,controls,GEO,HS,focusHS,isolateHS,get ENG(){return ENG;},labFocus,labIso,get hood(){return hood;},get eng(){return engineScan;}};
 })();
 </script>
 </body>
